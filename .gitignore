@@ -1,0 +1,27 @@
+# Environment & secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Python
+backend/venv/
+**/__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+
+# Node / frontend
+inni-products/node_modules/
+inni-products/dist/
+inni-products/build/
+inni-products/coverage/
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE / local tooling
+.cursor/
+.vscode/
+.idea/

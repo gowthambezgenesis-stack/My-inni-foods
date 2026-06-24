@@ -213,7 +213,8 @@ FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000').rstr
 
 # JWT — short-lived access tokens, rotating refresh in HttpOnly cookie
 JWT_COOKIE_NAME = 'inni_refresh_token'
-JWT_COOKIE_PATH = '/api/auth/'
+# Refresh cookie path must cover both /api/admin/auth/verify-otp/ (set) and /api/auth/refresh/ (read).
+JWT_COOKIE_PATH = '/api/'
 JWT_COOKIE_SECURE = env_bool('JWT_COOKIE_SECURE', default=not DEBUG)
 JWT_COOKIE_SAMESITE = os.getenv('JWT_COOKIE_SAMESITE', 'Lax')
 

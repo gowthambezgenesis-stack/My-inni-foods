@@ -140,48 +140,7 @@
 
 ---
 
-## 4. Pre-handover checklist (development team)
-
-Complete these before formal handover:
-
-### Code and repository
-
-- [ ] Push latest code to Git (main/develop branch)
-- [ ] Confirm `.env` is in `.gitignore` (no secrets in repo)
-- [ ] Share `.env.example` files with deployment team
-- [ ] Document any uncommitted local changes
-
-### Documentation to provide
-
-- [ ] List of admin users and their roles (super_admin, order_manager)
-- [ ] Razorpay account details (test vs live keys)
-- [ ] SMTP account used for OTP and notifications
-- [ ] Sample test order number for smoke testing track + PDF
-
-### Functional smoke tests
-
-- [ ] Place test order → complete Razorpay test payment → success page loads
-- [ ] Track order with email/mobile → timeline loads and updates
-- [ ] Download invoice PDF → opens correctly with Order ID
-- [ ] Admin OTP login works
-- [ ] Admin updates order status → track page reflects change
-- [ ] New paid order triggers notification email to admins (if SMTP enabled)
-- [ ] `python manage.py check` passes
-- [ ] Frontend `yarn tsc --noEmit` passes
-
-### Known limitations to disclose
-
-| Item | Detail |
-|------|--------|
-| **Product catalog** | Frontend uses **static product data** (`inni-products/src/data/`) — not fully wired to a backend products API |
-| **Razorpay webhook** | Implemented but requires public URL + webhook secret in production |
-| **Celery** | Not configured; notification emails use background threads |
-| **Django admin** | Built-in Django `/admin/` exists; primary UI is custom React admin at `/admin` |
-| **No Meta API** | No Facebook/Meta catalog or ads integration in this codebase |
-
----
-
-## 5. How to run locally
+## 4. How to run locally
 
 ### Backend
 
@@ -226,7 +185,7 @@ python manage.py prune_admin_login_otps
 
 ---
 
-## 6. Order fulfillment flow
+## 5. Order fulfillment flow
 
 Customer-visible tracking stages (in order):
 
@@ -241,7 +200,7 @@ Admin status dropdown only allows: **processing**, **shipping**, **out_for_deliv
 
 ---
 
-## 7. Admin roles
+## 6. Admin roles
 
 | Role | Access |
 |------|--------|
@@ -254,7 +213,7 @@ Admin login uses **email OTP** (no password). OTP expires in 5 minutes.
 
 ---
 
-## 8. Payment flow (technical)
+## 7. Payment flow (technical)
 
 1. Frontend calls `POST /api/orders/create/` with cart + shipping + email  
 2. Backend creates `Order`, `OrderItem`s, Razorpay order, and `Payment` record  
@@ -266,34 +225,9 @@ Admin login uses **email OTP** (no password). OTP expires in 5 minutes.
 
 ---
 
-## 9. Suggested handover email (copy-paste)
 
-> **Subject: inni Products — Dev handover to deployment**
->
-> Hi team,
->
-> We're handing over the **inni Products** e-commerce application (React frontend + Django API). Core flows are implemented and tested in development:
->
-> - Guest checkout with Razorpay  
-> - Order tracking with live status updates  
-> - Invoice PDF download (ReportLab)  
-> - Admin panel (OTP login, orders, users, status management)  
-> - Email notifications to super_admin and order_manager on new paid orders  
->
-> **Your responsibilities:** production hosting, PostgreSQL, env/secrets, HTTPS, CORS, Razorpay live keys + webhook URL, SMTP, and `VITE_API_BASE_URL` for the frontend build.
->
-> **Repo structure:** `inni-products/` (frontend), `backend/` (API). See `.env.example` in each folder and `HANDOVER.md` at repo root.
->
-> **Not in scope:** Meta/Facebook API, product CMS API (catalog is still static in frontend), Celery/Redis (optional).
->
-> Please confirm once staging is up so we can run a joint smoke test (checkout → track → PDF → admin).
->
-> Thanks,  
-> Development team
 
----
-
-## 10. Key file reference
+## 8. Key file reference
 
 | Area | Path |
 |------|------|
@@ -317,7 +251,7 @@ Admin login uses **email OTP** (no password). OTP expires in 5 minutes.
 
 ---
 
-## 11. API documentation (Swagger / OpenAPI)
+## 9. API documentation (Swagger / OpenAPI)
 
 Interactive API docs are available via **drf-spectacular**:
 
@@ -330,6 +264,7 @@ Interactive API docs are available via **drf-spectacular**:
 **Enable in production:** set `SWAGGER_ENABLED=True` in backend `.env` (defaults to `True` when `DEBUG=True`).
 
 **Auth in Swagger:** click **Authorize** and enter `Bearer <access_token>` from admin OTP verify.
+remove swagger in production
 
 ---
 

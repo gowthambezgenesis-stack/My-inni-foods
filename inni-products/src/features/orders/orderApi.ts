@@ -14,6 +14,7 @@ export interface FetchOrdersParams {
   status?: OrderStatus;
   payment_status?: PaymentStatus;
   search?: string;
+  recent?: boolean;
 }
 
 /** Normalize Django numeric IDs to strings for frontend consistency. */
@@ -69,6 +70,27 @@ export async function trackOrder(payload: TrackOrderPayload): Promise<TrackedOrd
   return normalizeTrackedOrder(data);
 }
 
+/** Download invoice PDF after guest verification. */
+export async function downloadOrderInvoice(payload: TrackOrderPayload): Promise<void> {
+  try {
+    const response = await api.post<Blob>('/orders/track/invoice/', payload, {
+      responseType: 'blob',
+    });
+
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoice-${payload.order_number}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    throw new Error(await parseApiError(error, 'Unable to download invoice.'));
+  }
+}
+
 async function parseApiError(error: unknown, fallback: string): Promise<string> {
   const axiosError = error as {
     response?: { data?: Blob | { error?: string; detail?: string } };
@@ -92,23 +114,52 @@ async function parseApiError(error: unknown, fallback: string): Promise<string> 
   return fallback;
 }
 
-/** Download invoice PDF after guest verification. */
-export async function downloadOrderInvoice(payload: TrackOrderPayload): Promise<void> {
+function triggerBlobDownload(blob: Blob, filename: string): void {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+function filenameFromContentDisposition(header: string | undefined, fallback: string): string {
+  if (!header) return fallback;
+  const match = /filename="?([^"]+)"?/i.exec(header);
+  return match?.[1] || fallback;
+}
+
+/** Export filtered orders as an Excel-compatible CSV file (admin only). */
+export async function downloadOrdersExport(params?: FetchOrdersParams): Promise<void> {
   try {
-    const response = await api.post<Blob>('/orders/track/invoice/', payload, {
+    const response = await api.get<Blob>('/orders/export/', {
+      params,
       responseType: 'blob',
     });
-
-    const blob = new Blob([response.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `invoice-${payload.order_number}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    const filename = filenameFromContentDisposition(
+      response.headers['content-disposition'],
+      'orders-export.csv',
+    );
+    triggerBlobDownload(new Blob([response.data], { type: 'text/csv' }), filename);
   } catch (error) {
-    throw new Error(await parseApiError(error, 'Unable to download invoice.'));
+    throw new Error(await parseApiError(error, 'Unable to download orders export.'));
+  }
+}
+
+/** Export a single order with line items as an Excel-compatible CSV file (admin only). */
+export async function downloadOrderDetailExport(orderId: string): Promise<void> {
+  try {
+    const response = await api.get<Blob>(`/orders/${orderId}/export/`, {
+      responseType: 'blob',
+    });
+    const filename = filenameFromContentDisposition(
+      response.headers['content-disposition'],
+      `order-${orderId}.csv`,
+    );
+    triggerBlobDownload(new Blob([response.data], { type: 'text/csv' }), filename);
+  } catch (error) {
+    throw new Error(await parseApiError(error, 'Unable to download order export.'));
   }
 }

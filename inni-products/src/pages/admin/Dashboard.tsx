@@ -139,7 +139,7 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          ...(showOrders ? [{ label: 'View All Orders', path: '/admin/orders', icon: Package }] : []),
+          ...(showOrders ? [{ label: 'View All Orders', path: '/admin/orders/all', icon: Package }] : []),
           ...(canManageUsers(role) || isSuperAdmin
             ? [{ label: 'Manage Users', path: '/admin/users', icon: Users }]
             : []),

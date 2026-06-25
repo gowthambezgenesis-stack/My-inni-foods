@@ -1,12 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Package } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { ArrowLeft, Download, Package } from 'lucide-react';
 import { StatusUpdater } from '../../components/admin/StatusUpdater';
+import { downloadOrderDetailExport } from '../../features/orders/orderApi';
 import { useOrderStore } from '../../features/orders/orderStore';
 
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const { selectedOrder, loading, error, loadOrder, updateStatus, clearSelected } = useOrderStore();
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (id) loadOrder(id);
@@ -21,6 +24,20 @@ export function OrderDetail() {
       hour: '2-digit',
       minute: '2-digit',
     });
+
+  const handleExport = async () => {
+    if (!selectedOrder) return;
+    setIsExporting(true);
+    try {
+      await downloadOrderDetailExport(selectedOrder.id);
+      toast.success('Order spreadsheet downloaded.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to download spreadsheet.';
+      toast.error(message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (loading) {
     return <div className="text-center py-12 text-sm text-neutral-400">Loading order...</div>;
@@ -43,7 +60,7 @@ export function OrderDetail() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <Link to="/admin/orders" className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white mb-4">
             <ArrowLeft size={16} /> Back to Orders
@@ -53,13 +70,24 @@ export function OrderDetail() {
           </h2>
           <p className="text-neutral-400 mt-1">Placed on {formatDate(selectedOrder.created_at)}</p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-neutral-500 uppercase tracking-wider">Fulfillment Status</p>
-          <StatusUpdater
-            orderId={selectedOrder.id}
-            currentStatus={selectedOrder.status}
-            onUpdate={updateStatus}
-          />
+        <div className="flex items-start gap-4">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-black hover:bg-neutral-950 disabled:opacity-60 disabled:cursor-not-allowed text-white border border-white/[0.08] rounded-lg text-sm font-medium transition-colors cursor-pointer"
+          >
+            <Download size={16} />
+            {isExporting ? 'Downloading...' : 'Download Excel'}
+          </button>
+          <div className="text-right">
+            <p className="text-xs text-neutral-500 uppercase tracking-wider">Fulfillment Status</p>
+            <StatusUpdater
+              orderId={selectedOrder.id}
+              currentStatus={selectedOrder.status}
+              onUpdate={updateStatus}
+            />
+          </div>
         </div>
       </div>
 

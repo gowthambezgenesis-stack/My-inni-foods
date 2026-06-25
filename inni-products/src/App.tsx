@@ -18,6 +18,7 @@ import { AdminLayout } from './pages/admin/Layout';
 import { Dashboard as AdminDashboard } from './pages/admin/Dashboard';
 import { OrderDetail as AdminOrderDetail } from './pages/admin/OrderDetail';
 import { Orders as AdminOrders } from './pages/admin/Orders';
+import { AllOrders as AdminAllOrders } from './pages/admin/AllOrders';
 import { Users as AdminUsers } from './pages/admin/Users';
 import { SettingsPage as AdminSettings } from './pages/admin/Settings';
 import { AdminLogin } from './pages/admin/Login';
@@ -62,6 +63,7 @@ export default function App() {
             <Route element={<AdminLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="orders/all" element={<AdminAllOrders />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="orders/:id" element={<AdminOrderDetail />} />
               <Route

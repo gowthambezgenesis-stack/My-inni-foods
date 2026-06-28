@@ -12,8 +12,7 @@ libpq-dev \
 
 COPY requirements.txt .
 
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt && pip install twilio==9.0.0
 
 COPY . .
 

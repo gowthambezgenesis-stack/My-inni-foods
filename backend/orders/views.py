@@ -16,6 +16,7 @@ from config.openapi_serializers import ErrorResponseSerializer
 from .export import build_order_detail_export_csv, build_orders_export_csv
 from .filters import filter_order_list_queryset
 from .invoice import build_order_invoice_pdf
+from .invoice_tokens import verify_invoice_access_token
 from .models import Order
 from .serializers import (
     OrderCreateResponseSerializer,
@@ -233,6 +234,44 @@ class TrackOrderInvoiceView(APIView):
         pdf_bytes = build_order_invoice_pdf(order)
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="invoice-{order.order_number}.pdf"'
+        return response
+
+
+@extend_schema(
+    tags=['Order Tracking'],
+    summary='Download signed order invoice PDF',
+    description=(
+        'Token-signed invoice PDF for WhatsApp delivery. '
+        'Used internally after checkout; token is included in the customer notification.'
+    ),
+    responses={
+        (200, 'application/pdf'): OpenApiResponse(description='Invoice PDF file'),
+        404: ErrorResponseSerializer,
+    },
+)
+class SignedOrderInvoiceView(APIView):
+    """
+    GET /api/orders/invoice/<order_number>/<token>/
+    Public signed URL so Twilio can attach the invoice PDF to WhatsApp messages.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, order_number: str, token: str):
+        try:
+            order = Order.objects.prefetch_related('items').get(order_number__iexact=order_number)
+        except Order.DoesNotExist:
+            return Response({'error': 'Invoice not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.payment_status != Order.PaymentStatus.PAID:
+            return Response({'error': 'Invoice not available.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not verify_invoice_access_token(order, token):
+            return Response({'error': 'Invalid invoice link.'}, status=status.HTTP_404_NOT_FOUND)
+
+        pdf_bytes = build_order_invoice_pdf(order)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="invoice-{order.order_number}.pdf"'
         return response
 
 

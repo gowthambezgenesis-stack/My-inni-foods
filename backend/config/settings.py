@@ -210,6 +210,14 @@ ADMIN_OTP_TTL_MINUTES = int(os.getenv('ADMIN_OTP_TTL_MINUTES', '5'))
 # New order email notifications (super_admin + order_manager)
 ORDER_NOTIFICATIONS_ENABLED = env_bool('ORDER_NOTIFICATIONS_ENABLED', default=True)
 FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000').rstrip('/')
+# Public HTTPS API URL — required for Twilio to fetch invoice PDF attachments (use ngrok in local dev)
+API_PUBLIC_BASE_URL = os.getenv('API_PUBLIC_BASE_URL', '').strip().rstrip('/')
+
+# Twilio WhatsApp — post-checkout customer notification with track/invoice link
+WHATSAPP_NOTIFICATIONS_ENABLED = env_bool('WHATSAPP_NOTIFICATIONS_ENABLED', default=False)
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '').strip()
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '').strip()
+TWILIO_WHATSAPP_NUMBER = os.getenv('TWILIO_WHATSAPP_NUMBER', '').strip()
 
 # JWT — short-lived access tokens, rotating refresh in HttpOnly cookie
 JWT_COOKIE_NAME = 'inni_refresh_token'

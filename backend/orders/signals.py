@@ -51,6 +51,16 @@ def notify_admins_on_new_paid_order(sender, instance: Order, **kwargs) -> None:
             instance.order_number,
         )
 
+    try:
+        from notifications.whatsapp_utils import send_whatsapp_for_paid_order
+
+        send_whatsapp_for_paid_order(instance)
+    except Exception:
+        logger.exception(
+            'Failed to send WhatsApp notification for %s',
+            instance.order_number,
+        )
+
 
 @receiver(post_save, sender=Payment)
 def sync_order_on_payment_update(sender, instance: Payment, **kwargs) -> None:

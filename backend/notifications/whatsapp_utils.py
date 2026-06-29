@@ -101,7 +101,7 @@ def send_whatsapp_for_paid_order(order: Order) -> bool:
 
     invoice_pdf_url = build_signed_invoice_url(order)
     if not invoice_pdf_url:
-        logger.warning(
+        logger.debug(
             'API_PUBLIC_BASE_URL is not set; sending WhatsApp without PDF attachment '
             'for order %s. Set API_PUBLIC_BASE_URL to a public HTTPS URL (e.g. ngrok).',
             order.order_number,

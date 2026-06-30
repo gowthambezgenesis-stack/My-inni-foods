@@ -20,11 +20,14 @@ export function TrackOrder() {
   const [searchParams] = useSearchParams();
   const initialOrderNumber = searchParams.get('order') ?? '';
   const initialEmail = searchParams.get('email') ?? '';
+  const initialMobile = searchParams.get('mobile') ?? '';
 
-  const [verificationMethod, setVerificationMethod] = useState<VerificationMethod>('email');
+  const [verificationMethod, setVerificationMethod] = useState<VerificationMethod>(
+    initialMobile ? 'mobile' : 'email',
+  );
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
   const [email, setEmail] = useState(initialEmail);
-  const [mobile, setMobile] = useState('');
+  const [mobile, setMobile] = useState(initialMobile);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState('');
   const [activePayload, setActivePayload] = useState<TrackOrderPayload | null>(null);

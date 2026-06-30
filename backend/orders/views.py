@@ -1,7 +1,7 @@
 import logging
 
-from django.db.models import Q
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -9,11 +9,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
-from accounts.permissions import IsOrderManager
+from accounts.permissions import IsAdminStaff, IsOrderManager
 from accounts.utils import user_is_admin_staff
 from config.openapi_serializers import ErrorResponseSerializer
 
+from .export import build_order_detail_export_csv, build_orders_export_csv
+from .filters import filter_order_list_queryset
 from .invoice import build_order_invoice_pdf
+from .invoice_tokens import verify_invoice_access_token
 from .models import Order
 from .serializers import (
     OrderCreateResponseSerializer,
@@ -54,54 +57,24 @@ def _lookup_verified_order(validated_data: dict) -> Order | None:
     get=extend_schema(
         tags=['Orders'],
         summary='List orders',
-        description='Customers see their own orders; admin roles see all orders.',
+        description=(
+            'Customers see their own orders; admin roles see all orders. '
+            'Use `?recent=true` to exclude delivered orders older than 7 days.'
+        ),
     ),
 )
 class OrderListView(ListAPIView):
     """
     GET /api/orders/
     Customers see their own orders; admin roles see all orders.
+    ?recent=true — active orders plus delivered within the last 7 days.
     """
 
     serializer_class = OrderListSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        queryset = Order.objects.select_related('user').prefetch_related('items')
-
-        status_filter = self.request.query_params.get('status')
-        payment_status = self.request.query_params.get('payment_status')
-        search = self.request.query_params.get('search')
-
-        if user_is_admin_staff(user):
-            qs = queryset
-        else:
-            qs = queryset.filter(user=user)
-
-        if status_filter:
-            qs = qs.filter(status=status_filter)
-        if payment_status:
-            qs = qs.filter(payment_status=payment_status)
-        if search:
-            search_q = (
-                Q(order_number__icontains=search)
-                | Q(shipping_address__city__icontains=search)
-                | Q(shipping_address__state__icontains=search)
-                | Q(user__username__icontains=search)
-                | Q(user__full_name__icontains=search)
-                | Q(shipping_address__firstName__icontains=search)
-                | Q(shipping_address__lastName__icontains=search)
-                | Q(shipping_address__phone__icontains=search)
-                | Q(user__phone__icontains=search)
-            )
-            phone_digits = ''.join(ch for ch in search if ch.isdigit())
-            if phone_digits:
-                search_q |= Q(shipping_address__phone__icontains=phone_digits)
-                search_q |= Q(user__phone__icontains=phone_digits)
-            qs = qs.filter(search_q)
-
-        return qs
+        return filter_order_list_queryset(self.request.user, self.request.query_params)
 
 
 @extend_schema_view(
@@ -261,4 +234,98 @@ class TrackOrderInvoiceView(APIView):
         pdf_bytes = build_order_invoice_pdf(order)
         response = HttpResponse(pdf_bytes, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="invoice-{order.order_number}.pdf"'
+        return response
+
+
+@extend_schema(
+    tags=['Order Tracking'],
+    summary='Download signed order invoice PDF',
+    description=(
+        'Token-signed invoice PDF for WhatsApp delivery. '
+        'Used internally after checkout; token is included in the customer notification.'
+    ),
+    responses={
+        (200, 'application/pdf'): OpenApiResponse(description='Invoice PDF file'),
+        404: ErrorResponseSerializer,
+    },
+)
+class SignedOrderInvoiceView(APIView):
+    """
+    GET /api/orders/invoice/<order_number>/<token>/
+    Public signed URL so Twilio can attach the invoice PDF to WhatsApp messages.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, order_number: str, token: str):
+        try:
+            order = Order.objects.prefetch_related('items').get(order_number__iexact=order_number)
+        except Order.DoesNotExist:
+            return Response({'error': 'Invoice not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.payment_status != Order.PaymentStatus.PAID:
+            return Response({'error': 'Invoice not available.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not verify_invoice_access_token(order, token):
+            return Response({'error': 'Invalid invoice link.'}, status=status.HTTP_404_NOT_FOUND)
+
+        pdf_bytes = build_order_invoice_pdf(order)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="invoice-{order.order_number}.pdf"'
+        return response
+
+
+@extend_schema(
+    tags=['Orders'],
+    summary='Export orders spreadsheet',
+    description=(
+        'Download orders as a CSV file (Excel-compatible). '
+        'Supports the same filters as the order list, including `?recent=true`.'
+    ),
+    responses={
+        (200, 'text/csv'): OpenApiResponse(description='Orders export file'),
+    },
+)
+class OrderExportView(APIView):
+    """GET /api/orders/export/ — admin export with list filters."""
+
+    permission_classes = [IsAuthenticated, IsAdminStaff]
+
+    def get(self, request):
+        orders = list(filter_order_list_queryset(request.user, request.query_params))
+        csv_bytes = build_orders_export_csv(orders)
+        scope = 'recent' if request.query_params.get('recent', '').lower() in {'1', 'true', 'yes', 'on'} else 'all'
+        filename = f'orders-{scope}-{timezone.now().strftime("%Y%m%d")}.csv'
+        response = HttpResponse(csv_bytes, content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+
+@extend_schema(
+    tags=['Orders'],
+    summary='Export single order spreadsheet',
+    description='Download one order and its line items as a CSV file (Excel-compatible).',
+    responses={
+        (200, 'text/csv'): OpenApiResponse(description='Order detail export file'),
+        404: ErrorResponseSerializer,
+    },
+)
+class OrderDetailExportView(APIView):
+    """GET /api/orders/<id>/export/ — admin export for a single order."""
+
+    permission_classes = [IsAuthenticated, IsAdminStaff]
+
+    def get(self, request, id):
+        queryset = Order.objects.select_related('user').prefetch_related('items')
+        if not user_is_admin_staff(request.user):
+            queryset = queryset.filter(user=request.user)
+
+        try:
+            order = queryset.get(pk=id)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        csv_bytes = build_order_detail_export_csv(order)
+        response = HttpResponse(csv_bytes, content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="order-{order.order_number}.csv"'
         return response

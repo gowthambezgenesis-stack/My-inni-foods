@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { createAdmin } from '../../features/admin/adminApi';
 import { CREATABLE_ADMIN_ROLES, DEFAULT_CREATABLE_ADMIN_ROLE } from '../../lib/adminRoles';
+import { AdminConnectedDropdown } from './AdminConnectedDropdown';
+import { useAdminThemeClasses } from '../../lib/adminTheme';
 import { cn } from '../../lib/utils';
 
 interface CreateAdminFormProps {
@@ -10,6 +12,7 @@ interface CreateAdminFormProps {
 }
 
 export function CreateAdminForm({ onSuccess, onCancel }: CreateAdminFormProps) {
+  const t = useAdminThemeClasses();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState(DEFAULT_CREATABLE_ADMIN_ROLE);
@@ -64,7 +67,7 @@ export function CreateAdminForm({ onSuccess, onCancel }: CreateAdminFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <label htmlFor="drawer-admin-email" className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
+        <label htmlFor="drawer-admin-email" className={cn('text-xs font-medium uppercase tracking-wider', t.label)}>
           Email address
         </label>
         <input
@@ -76,15 +79,16 @@ export function CreateAdminForm({ onSuccess, onCancel }: CreateAdminFormProps) {
           placeholder="admin@inni.com"
           disabled={isSubmitting}
           className={cn(
-            'w-full bg-[#111] border rounded-xl px-4 py-3 outline-none transition-colors text-white placeholder-neutral-500',
-            error ? 'border-red-500/60 focus:border-red-400' : 'border-white/10 focus:border-orange-500/60',
+            'w-full border rounded-xl px-4 py-3 outline-none transition-colors',
+            t.formInput,
+            error ? 'border-red-500/60 focus:border-red-400' : 'focus:border-orange-500/60',
           )}
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="drawer-admin-full-name" className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
-          Full name <span className="text-neutral-600 normal-case">(optional)</span>
+        <label htmlFor="drawer-admin-full-name" className={cn('text-xs font-medium uppercase tracking-wider', t.label)}>
+          Full name <span className={cn('normal-case', t.muted)}>(optional)</span>
         </label>
         <input
           id="drawer-admin-full-name"
@@ -94,27 +98,22 @@ export function CreateAdminForm({ onSuccess, onCancel }: CreateAdminFormProps) {
           onChange={(event) => setFullName(event.target.value)}
           placeholder="Jane Doe"
           disabled={isSubmitting}
-          className="w-full bg-[#111] border border-white/10 focus:border-orange-500/60 rounded-xl px-4 py-3 outline-none transition-colors text-white placeholder-neutral-500"
+          className={cn('w-full border focus:border-orange-500/60 rounded-xl px-4 py-3 outline-none transition-colors', t.formInput)}
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="drawer-admin-role" className="text-xs font-medium text-neutral-400 uppercase tracking-wider">
+        <label htmlFor="drawer-admin-role" className={cn('text-xs font-medium uppercase tracking-wider', t.label)}>
           Role
         </label>
-        <select
+        <AdminConnectedDropdown
           id="drawer-admin-role"
           value={role}
-          onChange={(event) => setRole(event.target.value as typeof role)}
+          options={CREATABLE_ADMIN_ROLES}
+          onChange={(value) => setRole(value as typeof role)}
           disabled={isSubmitting}
-          className="w-full bg-[#111] border border-white/10 focus:border-orange-500/60 rounded-xl px-4 py-3 outline-none transition-colors text-white"
-        >
-          {CREATABLE_ADMIN_ROLES.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          ariaLabel="Admin role"
+        />
       </div>
 
       {error && (
@@ -135,7 +134,7 @@ export function CreateAdminForm({ onSuccess, onCancel }: CreateAdminFormProps) {
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="flex-1 py-3 rounded-full font-medium text-sm border border-white/10 text-neutral-300 hover:bg-white/[0.04] transition-colors disabled:opacity-60 cursor-pointer"
+            className={cn('flex-1 py-3 rounded-full font-medium text-sm border transition-colors disabled:opacity-60 cursor-pointer', t.cancelBtn)}
           >
             Cancel
           </button>

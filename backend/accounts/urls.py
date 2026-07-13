@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AdminDashboardStatsView,
+    AdminSearchSuggestionsView,
     AdminUserListView,
     AdminUserRemoveView,
     AdminUserRoleUpdateView,
@@ -12,6 +13,7 @@ from .views import (
 
 urlpatterns = [
     path('dashboard/stats/', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),
+    path('search/suggestions/', AdminSearchSuggestionsView.as_view(), name='admin-search-suggestions'),
     path('users/', AdminUserListView.as_view(), name='admin-user-list'),
     path('users/create/', CreateAdminView.as_view(), name='admin-user-create'),
     path('users/<int:id>/role/', AdminUserRoleUpdateView.as_view(), name='admin-user-role'),

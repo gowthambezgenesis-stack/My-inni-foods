@@ -43,7 +43,6 @@ class CustomUser(AbstractUser):
         SUPER_ADMIN = 'super_admin', 'Super Admin'
         ORDER_MANAGER = 'order_manager', 'Order Manager'
         SUPPORT_AGENT = 'support_agent', 'Support Agent'
-        VIEWER = 'viewer', 'Viewer'
 
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=150)
@@ -88,7 +87,6 @@ class CustomUser(AbstractUser):
                 self.Role.SUPER_ADMIN,
                 self.Role.ORDER_MANAGER,
                 self.Role.SUPPORT_AGENT,
-                self.Role.VIEWER,
             }
             and self.is_profile_active is not False
         )

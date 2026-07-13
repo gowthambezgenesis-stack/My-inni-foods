@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Download, ListOrdered, RefreshCw, Search } from 'lucide-react';
 import { LiveIndicator } from './LiveIndicator';
+import { AdminPillDropdown } from './AdminPillDropdown';
 import { OrderTable } from './OrderTable';
 import { downloadOrdersExport, FetchOrdersParams } from '../../features/orders/orderApi';
 import { useRealtimeOrders } from '../../hooks/useRealtimeOrders';
 import { OrderStatus, PaymentStatus } from '../../types';
 import { ORDER_STATUS_FILTER_OPTIONS, formatOrderStatusLabel } from '../../lib/orderStatuses';
+import { useAdminThemeClasses } from '../../lib/adminTheme';
+import { cn } from '../../lib/utils';
 
 type OrdersListMode = 'recent' | 'all';
 
@@ -18,11 +21,26 @@ interface OrdersListViewProps {
 const accentButtonClass =
   'inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors cursor-pointer';
 
-const downloadButtonClass =
-  'inline-flex items-center gap-2 px-4 py-2 bg-black hover:bg-neutral-950 disabled:opacity-60 disabled:cursor-not-allowed text-white border border-white/[0.08] rounded-lg text-sm font-medium transition-colors cursor-pointer';
+const STATUS_FILTER_OPTIONS = [
+  { value: '', label: 'All Statuses' },
+  ...ORDER_STATUS_FILTER_OPTIONS.map((status) => ({
+    value: status,
+    label: formatOrderStatusLabel(status),
+  })),
+];
+
+const PAYMENT_FILTER_OPTIONS = [
+  { value: '', label: 'All Payments' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'refunded', label: 'Refunded' },
+];
 
 export function OrdersListView({ mode }: OrdersListViewProps) {
   const isRecent = mode === 'recent';
+  const t = useAdminThemeClasses();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | ''>('');
@@ -42,6 +60,16 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
   const applyFilters = (next: FetchOrdersParams) => {
     setFilters(next);
   };
+
+  useEffect(() => {
+    const query = searchParams.get('search')?.trim() ?? '';
+    if (!query) return;
+    setSearchTerm(query);
+    setFilters({
+      recent: isRecent ? true : undefined,
+      search: query,
+    });
+  }, [searchParams, isRecent]);
 
   const runSearch = () => {
     applyFilters(buildFilters());
@@ -94,22 +122,23 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
           {!isRecent && (
             <Link
               to="/admin/orders"
-              className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white mb-4"
+              className={cn('inline-flex items-center gap-2 text-sm mb-4', t.linkBack)}
             >
               <ArrowLeft size={16} />
               Back to Recent Orders
             </Link>
           )}
-          <h2 className="text-3xl font-bold tracking-tight text-white">
+          <h2 className={cn('text-3xl font-bold tracking-tight', t.heading)}>
             {isRecent ? 'Orders' : 'All Orders'}
           </h2>
-          <p className="text-neutral-400 mt-1">
+          <p className={cn('mt-1', t.body)}>
             {isRecent
-              ? 'Active orders and recently delivered — updated in the last 7 days.'
+              ? 'Active orders and orders delivered in the last 24 hours.'
               : 'Complete order history across every status.'}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <LiveIndicator lastUpdated={lastUpdated} />
           {isRecent && (
             <Link to="/admin/orders/all" className={accentButtonClass}>
               <ListOrdered size={16} />
@@ -120,12 +149,14 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
             type="button"
             onClick={handleExport}
             disabled={isExporting || loading}
-            className={downloadButtonClass}
+            className={cn(
+              'inline-flex items-center gap-2 px-4 py-2 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors cursor-pointer',
+              t.secondaryBtn,
+            )}
           >
             <Download size={16} />
             {isExporting ? 'Downloading...' : 'Download Excel'}
           </button>
-          <LiveIndicator lastUpdated={lastUpdated} />
         </div>
       </div>
 
@@ -144,39 +175,36 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
             placeholder="Search phone, username, order number, or city..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-white/[0.08] rounded-lg text-sm text-white focus:outline-none focus:border-orange-500 placeholder-neutral-500 transition-colors"
+            className={cn(
+              'w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-orange-500 transition-colors',
+              t.input,
+            )}
           />
         </div>
         <div className="flex gap-2 font-sans flex-wrap">
-          <select
+          <AdminPillDropdown
             value={statusFilter}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            className="px-3 py-2 bg-neutral-950 border border-white/[0.08] rounded-lg text-sm text-neutral-300 focus:outline-none focus:border-orange-500"
-          >
-            <option value="">All Statuses</option>
-            {ORDER_STATUS_FILTER_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {formatOrderStatusLabel(status)}
-              </option>
-            ))}
-          </select>
-          <select
+            options={STATUS_FILTER_OPTIONS}
+            onChange={(value) => handleFilterChange('status', value)}
+            placeholder="All Statuses"
+            ariaLabel="Filter by order status"
+          />
+          <AdminPillDropdown
             value={paymentFilter}
-            onChange={(e) => handleFilterChange('payment', e.target.value)}
-            className="px-3 py-2 bg-neutral-950 border border-white/[0.08] rounded-lg text-sm text-neutral-300 focus:outline-none focus:border-orange-500"
-          >
-            <option value="">All Payments</option>
-            <option value="pending">Pending</option>
-            <option value="paid">Paid</option>
-            <option value="failed">Failed</option>
-            <option value="refunded">Refunded</option>
-          </select>
+            options={PAYMENT_FILTER_OPTIONS}
+            onChange={(value) => handleFilterChange('payment', value)}
+            placeholder="All Payments"
+            ariaLabel="Filter by payment status"
+          />
           <button
             type="button"
             onClick={handleRefresh}
             title="Reset status and payment filters"
             aria-label="Reset status and payment filters"
-            className="flex items-center justify-center p-2 bg-neutral-950 hover:bg-neutral-900 border border-white/[0.08] text-neutral-300 hover:text-white rounded-lg text-sm transition-colors cursor-pointer"
+            className={cn(
+              'flex items-center justify-center p-2 border rounded-lg text-sm transition-colors cursor-pointer',
+              t.refreshBtn,
+            )}
           >
             <RefreshCw size={16} />
           </button>
@@ -184,7 +212,7 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
       </form>
 
       {loading ? (
-        <div className="text-center py-12 text-sm text-neutral-400">Loading orders...</div>
+        <div className={cn('text-center py-12 text-sm', t.loading)}>Loading orders...</div>
       ) : error ? (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center text-sm text-red-400">
           {error}

@@ -1,11 +1,13 @@
 import logging
 
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from payment.models import Payment
 from .models import Order
 from notifications.whatsapp_utils import send_whatsapp_invoice
+
+from .models import Order, OrderItem
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +90,36 @@ def notify_admins_on_new_paid_order(sender, instance: Order, **kwargs) -> None:
             'Failed to send WhatsApp notification for %s',
             instance.order_number,
         )
+
+    try:
+        from django.db import transaction
+        from .meilisearch_search import index_order
+
+        transaction.on_commit(lambda: index_order(instance))
+    except Exception:
+        logger.exception('Failed to schedule Meilisearch sync for order %s', instance.pk)
+
+
+@receiver(post_save, sender=OrderItem)
+def reindex_order_after_item_change(sender, instance: OrderItem, **kwargs) -> None:
+    try:
+        from django.db import transaction
+        from .meilisearch_search import index_order
+
+        transaction.on_commit(lambda: index_order(instance.order))
+    except Exception:
+        logger.exception('Failed to schedule Meilisearch sync after item change for order %s', instance.order_id)
+
+
+@receiver(post_delete, sender=Order)
+def remove_order_from_meilisearch(sender, instance: Order, **kwargs) -> None:
+    try:
+        from .meilisearch_search import remove_order_from_index
+
+        remove_order_from_index(instance.pk)
+    except Exception:
+        logger.exception('Failed to remove order %s from Meilisearch', instance.pk)
+
 
 @receiver(post_save, sender=Payment)
 def sync_order_on_payment_update(sender, instance: Payment, **kwargs) -> None:

@@ -29,6 +29,8 @@ urlpatterns = [
     path('api/admin/', include('accounts.urls')),
     path('api/orders/', include('orders.urls')),
     path('api/payment/', include('payment.urls')),
+    path('api/contact/', include('accounts.public_urls')),
+    path('api/partner/', include('accounts.partner_urls')),
 ]
 
 if settings.SWAGGER_ENABLED:

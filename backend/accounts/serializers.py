@@ -59,3 +59,57 @@ class CreateAdminSerializer(serializers.Serializer):
             raise serializers.ValidationError('A user with this email already exists.')
         return email
 
+
+class ContactMessageSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    subject = serializers.CharField(max_length=200)
+    message = serializers.CharField(max_length=5000)
+
+    def validate_name(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError('Name is required.')
+        return cleaned
+
+    def validate_email(self, value: str) -> str:
+        return value.strip().lower()
+
+    def validate_subject(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError('Subject is required.')
+        return cleaned
+
+    def validate_message(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError('Message is required.')
+        return cleaned
+
+
+PARTNERSHIP_TYPE_CHOICES = [
+    ('restaurant_chef', 'Restaurant / Chef'),
+    ('retail_distributor', 'Retail Distributor'),
+    ('catering_events', 'Catering / Events'),
+]
+
+
+class PartnerApplicationSerializer(serializers.Serializer):
+    business_name = serializers.CharField(max_length=200)
+    email = serializers.EmailField()
+    partnership_type = serializers.ChoiceField(choices=PARTNERSHIP_TYPE_CHOICES)
+    message = serializers.CharField(max_length=5000, required=False, allow_blank=True, default='')
+
+    def validate_business_name(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError('Business name is required.')
+        return cleaned
+
+    def validate_email(self, value: str) -> str:
+        return value.strip().lower()
+
+    def validate_message(self, value: str) -> str:
+        return value.strip()
+

@@ -2,11 +2,14 @@ import { api } from '../../lib/api';
 import { Order, User } from '../../types';
 
 export interface DashboardStats {
+  /** Orders created in the current calendar month. */
   total_orders: number;
+  /** Paid revenue for the current calendar month. */
   total_revenue: number | null;
-  pending_orders: number;
+  not_delivered_orders: number;
   todays_sales: number | null;
   todays_orders: number;
+  /** Paid orders created in the current calendar month. */
   paid_orders: number;
   recent_orders: Order[];
   users_by_role: Record<string, number>;

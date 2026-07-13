@@ -12,25 +12,37 @@ const PROGRESS_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 interface TrackingTimelineProps {
   events: TrackingHistoryEvent[];
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'mobile';
   className?: string;
 }
 
-function TimelineDot({ event, compact }: { event: TrackingHistoryEvent; compact: boolean }) {
-  const sizeClass = compact ? 'h-3 w-3' : 'h-3.5 w-3.5';
+function TimelineDot({
+  event,
+  compact,
+  mobile,
+}: {
+  event: TrackingHistoryEvent;
+  compact: boolean;
+  mobile: boolean;
+}) {
+  const sizeClass = mobile ? 'h-2 w-2' : compact ? 'h-2.5 w-2.5' : 'h-3 w-3';
+  const wrapClass = mobile ? 'h-5 w-5' : compact ? 'h-6 w-6' : 'h-7 w-7';
 
   if (event.is_current) {
     return (
-      <span className={cn('relative flex items-center justify-center', compact ? 'h-5 w-5' : 'h-6 w-6')}>
-        <motion.span
-          className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/30"
-          animate={{ scale: [1, 1.55, 1], opacity: [0.65, 0.15, 0.65] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        />
+      <span className={cn('relative flex items-center justify-center', wrapClass)}>
+        {!mobile && (
+          <motion.span
+            className="absolute inline-flex h-full w-full rounded-full bg-emerald-400/20"
+            animate={{ scale: [1, 1.6, 1], opacity: [0.5, 0.1, 0.5] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
         <span
           className={cn(
             sizeClass,
-            'relative rounded-full border-[3px] border-emerald-500 bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.55)]',
+            'relative rounded-full border-2 border-emerald-500 bg-emerald-500',
+            !mobile && 'ring-4 ring-emerald-500/15',
           )}
         />
       </span>
@@ -42,14 +54,21 @@ function TimelineDot({ event, compact }: { event: TrackingHistoryEvent; compact:
       <span
         className={cn(
           sizeClass,
-          'rounded-full border-[3px] border-emerald-500 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.25)]',
+          'rounded-full border-2 border-emerald-500/90 bg-emerald-500',
+          !mobile && 'ring-2 ring-emerald-500/10',
         )}
       />
     );
   }
 
   return (
-    <span className={cn(sizeClass, 'rounded-full border-[3px] border-neutral-300 bg-white')} />
+    <span
+      className={cn(
+        sizeClass,
+        'rounded-full border-2 border-neutral-200 bg-white',
+        !mobile && 'ring-2 ring-neutral-100',
+      )}
+    />
   );
 }
 
@@ -58,17 +77,18 @@ export function TrackingTimeline({
   variant = 'default',
   className,
 }: TrackingTimelineProps) {
-  const compact = variant === 'compact';
+  const mobile = variant === 'mobile';
+  const compact = variant === 'compact' || mobile;
   const progressRatio = useMemo(() => getTimelineProgressRatio(events), [events]);
 
-  const trackTop = compact ? 10 : 12;
-  const trackBottom = compact ? 10 : 12;
-  const lineOffset = compact ? 9 : 11;
+  const trackTop = mobile ? 8 : compact ? 12 : 14;
+  const trackBottom = mobile ? 8 : compact ? 12 : 14;
+  const lineOffset = mobile ? 9 : compact ? 11 : 13;
 
   return (
     <div className={cn('relative', className)}>
       <div
-        className="pointer-events-none absolute w-0.5 rounded-full bg-neutral-200"
+        className="pointer-events-none absolute w-px rounded-full bg-neutral-200/90"
         style={{
           left: lineOffset,
           top: trackTop,
@@ -77,7 +97,7 @@ export function TrackingTimeline({
       />
 
       <motion.div
-        className="pointer-events-none absolute w-0.5 rounded-full bg-gradient-to-b from-emerald-400 via-emerald-500 to-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.35)]"
+        className="pointer-events-none absolute w-px rounded-full bg-gradient-to-b from-emerald-300 via-emerald-500 to-emerald-500/80"
         style={{
           left: lineOffset,
           top: trackTop,
@@ -93,53 +113,47 @@ export function TrackingTimeline({
       <div className="relative space-y-0">
         {events.map((event, index) => {
           const isLast = index === events.length - 1;
-          const rowMinHeight = compact ? 56 : 72;
+          const rowMinHeight = mobile ? 44 : compact ? 64 : 88;
 
           return (
             <motion.div
               key={event.title}
               className="flex gap-3 sm:gap-4"
               initial={false}
-              animate={{ opacity: event.completed ? 1 : 0.72 }}
+              animate={{ opacity: event.completed || event.is_current ? 1 : 0.55 }}
               transition={{ duration: 0.35 }}
               style={{ minHeight: isLast ? undefined : rowMinHeight }}
             >
-              <div className="flex w-5 shrink-0 flex-col items-center sm:w-6">
-                <TimelineDot event={event} compact={compact} />
+              <div className={cn('flex shrink-0 flex-col items-center', mobile ? 'w-5' : 'w-6 sm:w-7')}>
+                <TimelineDot event={event} compact={compact} mobile={mobile} />
               </div>
 
-              <div className={cn('min-w-0 flex-1', !isLast && (compact ? 'pb-4' : 'pb-6'))}>
+              <div className={cn('min-w-0 flex-1', !isLast && (mobile ? 'pb-2.5' : compact ? 'pb-5' : 'pb-8'))}>
                 <motion.p
                   className={cn(
-                    'font-semibold leading-snug',
-                    compact ? 'text-sm' : 'text-base',
+                    'font-semibold leading-snug tracking-tight',
+                    mobile ? 'text-[13px]' : compact ? 'text-sm' : 'text-[15px] sm:text-base',
                     event.is_current
-                      ? 'text-neutral-950'
+                      ? 'text-emerald-700'
                       : event.completed
-                        ? 'text-neutral-800'
+                        ? 'text-neutral-900'
                         : 'text-neutral-400',
                   )}
-                  animate={{ x: event.is_current ? [0, 2, 0] : 0 }}
-                  transition={
-                    event.is_current
-                      ? { duration: 0.8, ease: PROGRESS_EASE }
-                      : { duration: 0.3 }
-                  }
                 >
                   {event.title}
                 </motion.p>
 
                 {event.timestamp ? (
-                  <p className={cn('mt-1 text-neutral-500', compact ? 'text-xs' : 'text-sm')}>
+                  <p className={cn('mt-0.5 text-neutral-500', mobile ? 'text-[11px]' : compact ? 'text-xs' : 'text-sm')}>
                     {formatTimelineTimestamp(event.timestamp)}
                   </p>
                 ) : (
-                  <p className={cn('mt-1 text-neutral-400 italic', compact ? 'text-xs' : 'text-sm')}>
+                  <p className={cn('mt-0.5 text-neutral-400 italic', mobile ? 'text-[11px]' : compact ? 'text-xs' : 'text-sm')}>
                     Awaiting update
                   </p>
                 )}
 
-                <p className={cn('mt-1 text-neutral-600', compact ? 'text-xs' : 'text-sm')}>
+                <p className={cn('mt-0.5 text-neutral-500/90', mobile ? 'text-[11px] leading-snug' : compact ? 'text-xs' : 'text-sm')}>
                   {event.location}
                 </p>
               </div>

@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { motion } from 'motion/react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { CheckCircle, Loader2, PackageSearch } from 'lucide-react';
-import { LiveIndicator } from '../components/admin/LiveIndicator';
 import { TrackingTimeline } from '../components/tracking/TrackingTimeline';
 import { useRealtimeOrderTracking } from '../hooks/useRealtimeOrderTracking';
 import { PaymentRecord } from '../types/payment';
@@ -13,11 +12,13 @@ interface SuccessLocationState {
   orderNumber?: string;
   email?: string;
   mobile?: string;
+  isCod?: boolean;
 }
 
 export function CheckoutSuccess() {
   const location = useLocation();
   const state = (location.state ?? {}) as SuccessLocationState;
+  const isCod = state.isCod ?? false;
   const orderNumber = state.orderNumber || state.payment?.order_id || '';
   const email = state.email?.trim().toLowerCase() ?? '';
   const mobile = state.mobile?.replace(/\D/g, '') ?? '';
@@ -44,7 +45,7 @@ export function CheckoutSuccess() {
     return null;
   }, [orderNumber, email, mobile]);
 
-  const { order, lastUpdated, loading } = useRealtimeOrderTracking({
+  const { order, loading } = useRealtimeOrderTracking({
     payload: trackPayload,
     enabled: Boolean(trackPayload),
   });
@@ -70,7 +71,7 @@ export function CheckoutSuccess() {
         transition={{ delay: 0.1 }}
         className="text-4xl md:text-5xl font-semibold tracking-tighter mb-4"
       >
-        Payment complete.
+        {isCod ? 'Order placed.' : 'Payment complete.'}
       </motion.h1>
 
       <motion.p
@@ -79,7 +80,9 @@ export function CheckoutSuccess() {
         transition={{ delay: 0.2 }}
         className="text-neutral-400 text-lg max-w-md mx-auto mb-10 font-light"
       >
-        Your premium spices are being prepared. We will send you an email with your shipping confirmation shortly.
+        {isCod
+          ? 'Your order has been confirmed with cash on delivery. Pay when your premium spices arrive.'
+          : 'Your premium spices are being prepared. We will send you an email with your shipping confirmation shortly.'}
       </motion.p>
 
       {trackPayload && (
@@ -107,12 +110,6 @@ export function CheckoutSuccess() {
                   <p className="mt-1 text-sm text-neutral-500">
                     Order <span className="font-mono text-neutral-800">#{order.order_number}</span>
                   </p>
-                  <div className="mt-3">
-                    <LiveIndicator
-                      lastUpdated={lastUpdated}
-                      className="text-emerald-600 [&_span.relative]:bg-emerald-500 [&_span.absolute]:bg-emerald-500"
-                    />
-                  </div>
                 </>
               ) : null}
             </div>

@@ -26,29 +26,39 @@ from config.openapi_serializers import (
     TokenRefreshResponseSerializer,
 )
 
+from orders.filters import apply_recent_orders_filter
 from orders.models import Order
 from orders.serializers import OrderListSerializer
 
-from .email_service import send_admin_otp_email
+from .email_service import send_admin_otp_email, send_contact_message_email, send_partner_application_email
 from .jwt_utils import REFRESH_COOKIE_NAME, clear_refresh_cookie, issue_token_response
 from .models import AdminLoginOtp, CustomUser
 from .permissions import IsAdminStaff, IsSuperAdmin
 from .serializers import (
     AdminUserSerializer,
+    ContactMessageSerializer,
     CreateAdminSerializer,
+    PARTNERSHIP_TYPE_CHOICES,
+    PartnerApplicationSerializer,
     SendAdminOtpSerializer,
     UserRoleUpdateSerializer,
     VerifyAdminOtpSerializer,
 )
-from .utils import ADMIN_VIEW_ROLES, get_admin_staff_by_email, get_client_ip, user_is_super_admin
+from .throttles import ContactMessageRateThrottle, PartnerApplicationRateThrottle
+from .utils import (
+    ADMIN_VIEW_ROLES,
+    get_admin_staff_by_email,
+    get_client_ip,
+    get_super_admin_recipient_emails,
+    user_is_super_admin,
+)
 
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
 
-GENERIC_OTP_MESSAGE = (
-    'If this email is registered as an admin, a verification code has been sent.'
-)
+ADMIN_OTP_SENT_MESSAGE = 'A verification code has been sent to your email.'
+NOT_ADMIN_EMAIL_ERROR = 'This email is not registered as an admin.'
 
 
 @extend_schema_view(
@@ -126,7 +136,11 @@ class LogoutView(APIView):
     summary='Send admin login OTP',
     description='Sends a one-time code only to registered active admin emails.',
     request=SendAdminOtpSerializer,
-    responses={200: MessageResponseSerializer, 503: ErrorResponseSerializer},
+    responses={
+        200: MessageResponseSerializer,
+        403: ErrorResponseSerializer,
+        503: ErrorResponseSerializer,
+    },
 )
 class SendAdminOtpView(APIView):
     """
@@ -146,14 +160,14 @@ class SendAdminOtpView(APIView):
 
         if not user:
             logger.warning('OTP requested for non-admin email: %s', email)
-            return Response({'message': GENERIC_OTP_MESSAGE}, status=status.HTTP_200_OK)
+            return Response({'error': NOT_ADMIN_EMAIL_ERROR}, status=status.HTTP_403_FORBIDDEN)
 
         _, plain_otp = AdminLoginOtp.create_for_email(email)
 
         if not settings.EMAIL_CONFIGURED:
             logger.error('SMTP not configured: set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env')
             return Response(
-                {'error': 'Email service is not configured. Set SMTP credentials in .env and restart the server.'},
+                {'error': 'We couldn’t send your verification code right now. Please try again in a moment.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -162,12 +176,130 @@ class SendAdminOtpView(APIView):
         except Exception:
             logger.exception('Failed to send OTP email to %s', email)
             return Response(
-                {'error': 'Unable to send verification email. Check SMTP settings and restart the server after changing .env.'},
+                {'error': 'We couldn’t send your verification code right now. Please try again in a moment.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         logger.info('OTP sent to admin %s', email)
-        return Response({'message': GENERIC_OTP_MESSAGE}, status=status.HTTP_200_OK)
+        return Response({'message': ADMIN_OTP_SENT_MESSAGE}, status=status.HTTP_200_OK)
+
+
+@extend_schema(
+    tags=['Contact'],
+    summary='Submit contact form',
+    description='Sends the message to all active super admin email addresses.',
+    request=ContactMessageSerializer,
+    responses={200: MessageResponseSerializer, 400: ErrorResponseSerializer, 503: ErrorResponseSerializer},
+)
+class ContactMessageView(APIView):
+    """POST /api/contact/ — public storefront contact form."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ContactMessageRateThrottle]
+
+    def post(self, request):
+        serializer = ContactMessageSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        recipients = get_super_admin_recipient_emails()
+        if not recipients:
+            logger.error('Contact form submitted but no super admin recipients exist')
+            return Response(
+                {'error': 'Contact service is temporarily unavailable. Please try again later.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if not settings.EMAIL_CONFIGURED:
+            logger.error('SMTP not configured; cannot send contact form email')
+            return Response(
+                {'error': 'We couldn’t send your message right now. Please try again in a moment.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            send_contact_message_email(
+                name=data['name'],
+                email=data['email'],
+                subject=data['subject'],
+                message=data['message'],
+                recipient_emails=recipients,
+            )
+        except Exception:
+            logger.exception('Failed to send contact form email from %s', data['email'])
+            return Response(
+                {'error': 'Unable to send your message right now. Please try again later.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        logger.info('Contact form message sent from %s', data['email'])
+        return Response(
+            {'message': 'Your message has been sent. We will get back to you soon.'},
+            status=status.HTTP_200_OK,
+        )
+
+
+def _super_admin_email_unavailable_response() -> Response:
+    return Response(
+        {'error': 'Service is temporarily unavailable. Please try again later.'},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
+@extend_schema(
+    tags=['Partner'],
+    summary='Submit partner application',
+    description='Sends the application to all active super admin email addresses.',
+    request=PartnerApplicationSerializer,
+    responses={200: MessageResponseSerializer, 400: ErrorResponseSerializer, 503: ErrorResponseSerializer},
+)
+class PartnerApplicationView(APIView):
+    """POST /api/partner/ — public partner application form."""
+
+    permission_classes = [AllowAny]
+    throttle_classes = [PartnerApplicationRateThrottle]
+
+    def post(self, request):
+        serializer = PartnerApplicationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        recipients = get_super_admin_recipient_emails()
+        if not recipients:
+            logger.error('Partner application submitted but no super admin recipients exist')
+            return _super_admin_email_unavailable_response()
+
+        if not settings.EMAIL_CONFIGURED:
+            logger.error('SMTP not configured; cannot send partner application email')
+            return _super_admin_email_unavailable_response()
+
+        partnership_label = dict(PARTNERSHIP_TYPE_CHOICES).get(
+            data['partnership_type'],
+            data['partnership_type'],
+        )
+
+        try:
+            send_partner_application_email(
+                business_name=data['business_name'],
+                email=data['email'],
+                partnership_type=partnership_label,
+                message=data.get('message', ''),
+                recipient_emails=recipients,
+            )
+        except Exception:
+            logger.exception('Failed to send partner application from %s', data['email'])
+            return Response(
+                {'error': 'Unable to submit your application right now. Please try again later.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        logger.info('Partner application sent from %s', data['email'])
+        return Response(
+            {'message': 'Your application has been submitted. We will contact you soon.'},
+            status=status.HTTP_200_OK,
+        )
 
 
 @extend_schema(
@@ -291,22 +423,25 @@ class AdminDashboardStatsView(APIView):
     permission_classes = [IsAdminStaff]
 
     def get(self, request):
-        today = timezone.now().date()
+        now = timezone.now()
+        today = now.date()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         paid_qs = Order.objects.filter(payment_status=Order.PaymentStatus.PAID)
+        recent_qs = apply_recent_orders_filter(Order.objects.all())
         zero_revenue = Value(0, output_field=DecimalField(max_digits=10, decimal_places=2))
         is_super = user_is_super_admin(request.user)
 
         stats = {
-            'total_orders': Order.objects.count(),
-            'pending_orders': Order.objects.filter(
-                Q(status=Order.Status.PENDING) | Q(payment_status=Order.PaymentStatus.PENDING)
-            ).count(),
+            # Total Orders card = all orders created in the current calendar month.
+            'total_orders': Order.objects.filter(created_at__gte=month_start).count(),
+            'not_delivered_orders': Order.objects.exclude(status=Order.Status.DELIVERED).count(),
             'todays_orders': Order.objects.filter(created_at__date=today).count(),
-            'paid_orders': paid_qs.count(),
+            'paid_orders': paid_qs.filter(created_at__gte=month_start).count(),
         }
 
         if is_super:
-            stats['total_revenue'] = paid_qs.aggregate(
+            # Total revenue card = paid revenue for the current calendar month.
+            stats['total_revenue'] = paid_qs.filter(created_at__gte=month_start).aggregate(
                 total=Coalesce(Sum('total_amount'), zero_revenue),
             )['total']
             stats['todays_sales'] = paid_qs.filter(created_at__date=today).aggregate(
@@ -320,11 +455,32 @@ class AdminDashboardStatsView(APIView):
             stats['users_by_role'] = {}
 
         recent_limit = 20 if is_super else 10
-        recent_orders = Order.objects.select_related('user').order_by('-created_at')[:recent_limit]
+        recent_orders = recent_qs.select_related('user').order_by('-created_at')[:recent_limit]
         stats['recent_orders'] = OrderListSerializer(recent_orders, many=True).data
         stats['is_super_admin'] = is_super
 
         return Response(stats)
+
+
+@extend_schema(
+    tags=['Admin Dashboard'],
+    summary='Admin search suggestions',
+    description='Typo-tolerant order search suggestions powered by Meilisearch with database fallback.',
+)
+class AdminSearchSuggestionsView(APIView):
+    permission_classes = [IsAdminStaff]
+
+    def get(self, request):
+        from orders.meilisearch_search import search_order_suggestions
+
+        query = request.query_params.get('q', '')
+        try:
+            limit = min(int(request.query_params.get('limit', 8)), 20)
+        except (TypeError, ValueError):
+            limit = 8
+
+        payload = search_order_suggestions(request.user, query, limit=limit)
+        return Response(payload)
 
 
 @extend_schema_view(

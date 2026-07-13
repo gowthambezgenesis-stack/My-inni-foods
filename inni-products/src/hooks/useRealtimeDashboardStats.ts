@@ -32,7 +32,7 @@ export function useRealtimeDashboardStats(options: UseRealtimeDashboardStatsOpti
       setLastUpdated(new Date());
     } catch {
       if (isInitial) {
-        setError('Failed to load dashboard data. Ensure you are logged in as Super Admin.');
+        setError('Unable to load dashboard data. Please refresh and try again.');
       }
     } finally {
       if (isInitial) {

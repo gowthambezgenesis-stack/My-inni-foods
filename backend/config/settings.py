@@ -138,6 +138,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'track_order': '20/min',
         'track_invoice': '10/min',
+        'contact_message': '5/min',
+        'partner_application': '5/min',
     },
 }
 
@@ -243,6 +245,11 @@ RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '')
 RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '')
 
 # Logging
+
+# Meilisearch — typo-tolerant admin order search (optional; falls back to database if unavailable)
+MEILISEARCH_URL = os.getenv('MEILISEARCH_URL', '').strip()
+MEILISEARCH_API_KEY = os.getenv('MEILISEARCH_API_KEY', '').strip()
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,

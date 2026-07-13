@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 import { ArrowRight, Mail } from 'lucide-react';
 
@@ -88,23 +89,16 @@ export function AdminLogin() {
 
 
     try {
-
-      await sendAdminOtp(trimmedEmail);
-
+      const response = await sendAdminOtp(trimmedEmail);
       setAdminLoginSession(trimmedEmail);
-
+      toast.success(response.message, { id: 'admin-otp-send' });
       navigate('/admin/login/verify');
-
     } catch (err: unknown) {
-
       const message =
-
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-
-        'Unable to send verification code. Check SMTP settings and try again.';
-
+        'We couldn’t send your verification code right now. Please try again in a moment.';
       setError(message);
-
+      toast.error(message, { id: 'admin-otp-send' });
     } finally {
 
       setIsSubmitting(false);
@@ -172,16 +166,10 @@ export function AdminLogin() {
 
 
         {error && (
-
           <p className="text-sm text-red-400 bg-red-950/20 border border-red-500/20 rounded-xl px-4 py-3">
-
             {error}
-
           </p>
-
         )}
-
-
 
         <button
 

@@ -11,7 +11,6 @@ ADMIN_VIEW_ROLES = {
     CustomUser.Role.SUPER_ADMIN,
     CustomUser.Role.ORDER_MANAGER,
     CustomUser.Role.SUPPORT_AGENT,
-    CustomUser.Role.VIEWER,
 }
 
 ORDER_STATUS_UPDATE_ROLES = {
@@ -23,7 +22,6 @@ CREATABLE_ADMIN_ROLES = {
     CustomUser.Role.SUPER_ADMIN,
     CustomUser.Role.ORDER_MANAGER,
     CustomUser.Role.SUPPORT_AGENT,
-    CustomUser.Role.VIEWER,
 }
 
 
@@ -37,6 +35,20 @@ def get_user_role(user) -> str | None:
 
 def user_is_super_admin(user) -> bool:
     return bool(user and user.is_authenticated and user.is_super_admin and user.is_active)
+
+
+def get_super_admin_recipient_emails() -> list[str]:
+    """Return active super admin emails for site notifications."""
+    return list(
+        User.objects.filter(
+            role=CustomUser.Role.SUPER_ADMIN,
+            is_active=True,
+        )
+        .filter(Q(is_profile_active=True) | Q(is_profile_active__isnull=True))
+        .exclude(email='')
+        .values_list('email', flat=True)
+        .distinct(),
+    )
 
 
 def get_super_admin_by_email(email: str) -> User | None:

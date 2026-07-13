@@ -20,13 +20,7 @@ export function formatTimelineTimestamp(value: string) {
     })
     .replace(/^\d+/, `${day}${suffix}`);
 
-  const timePart = date.toLocaleTimeString('en-IN', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-
-  return `${datePart} At ${timePart}`;
+  return datePart;
 }
 
 export function getActiveTimelineIndex(events: TrackingHistoryEvent[]): number {

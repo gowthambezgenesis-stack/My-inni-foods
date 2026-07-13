@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User } from '../types';
 import { api } from '../lib/api';
+import { useAdminNotificationStore } from './adminNotificationStore';
 
 interface AuthState {
   user: User | null;
@@ -12,6 +13,7 @@ interface AuthState {
   hasHydrated: boolean;
   login: (user: User, accessToken: string) => void;
   setAccessToken: (accessToken: string) => void;
+  clearSession: () => void;
   logout: () => Promise<void>;
   initialize: () => void;
   setHasHydrated: (value: boolean) => void;
@@ -43,13 +45,9 @@ export const useAuthStore = create<AuthState>()(
         set({ accessToken });
       },
 
-      logout: async () => {
-        try {
-          await api.post('/auth/logout/');
-        } catch {
-          // Ignore — clear local state even if server call fails
-        }
+      clearSession: () => {
         localStorage.removeItem('inni_access_token');
+        useAdminNotificationStore.getState().clear();
         set({
           user: null,
           accessToken: null,
@@ -57,6 +55,16 @@ export const useAuthStore = create<AuthState>()(
           isSuperAdmin: false,
           role: null,
         });
+      },
+
+      logout: async () => {
+        // Clear local auth first so concurrent 401 handlers cannot re-enter.
+        get().clearSession();
+        try {
+          await api.post('/auth/logout/');
+        } catch {
+          // Ignore — local session is already cleared
+        }
       },
 
       initialize: () => {

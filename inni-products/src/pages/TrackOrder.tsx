@@ -8,8 +8,24 @@ import { downloadOrderInvoice } from '../features/orders/orderApi';
 import { useRealtimeOrderTracking } from '../hooks/useRealtimeOrderTracking';
 import { TrackOrderPayload } from '../types';
 import { cn } from '../lib/utils';
+import {
+  DEFAULT_PHONE_COUNTRY_CODE,
+  getPhoneDigits,
+  PHONE_COUNTRY_CODES,
+} from '../lib/phone';
 
 type VerificationMethod = 'email' | 'mobile';
+
+const PHONE_ERROR = 'Enter valid 10-digit mobile number';
+
+function parseInitialMobile(value: string): string {
+  const digits = getPhoneDigits(value);
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
+function isValidMobile(mobile: string): boolean {
+  return getPhoneDigits(mobile).length === 10;
+}
 
 const fieldClassName =
   'w-full bg-transparent border-0 border-b border-white/20 py-3 text-white placeholder-neutral-600 outline-none focus:border-[#E33E2B]/80 transition-colors duration-300';
@@ -27,25 +43,36 @@ export function TrackOrder() {
   );
   const [orderNumber, setOrderNumber] = useState(initialOrderNumber);
   const [email, setEmail] = useState(initialEmail);
-  const [mobile, setMobile] = useState(initialMobile);
+  const [mobileCountryCode, setMobileCountryCode] = useState(DEFAULT_PHONE_COUNTRY_CODE);
+  const [mobile, setMobile] = useState(parseInitialMobile(initialMobile));
+  const [mobileTouched, setMobileTouched] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState('');
   const [activePayload, setActivePayload] = useState<TrackOrderPayload | null>(null);
   const [hasShownFoundToast, setHasShownFoundToast] = useState(false);
+
+  const mobileDigits = getPhoneDigits(mobile);
+  const mobileError =
+    verificationMethod === 'mobile' && mobile.trim()
+      ? mobileDigits.length > 10 || /[a-zA-Z]/.test(mobile)
+        ? PHONE_ERROR
+        : mobileTouched && mobileDigits.length !== 10
+          ? PHONE_ERROR
+          : null
+      : null;
 
   const verificationPayload = useMemo(
     () => ({
       order_number: orderNumber.trim().toUpperCase(),
       ...(verificationMethod === 'email'
         ? { email: email.trim().toLowerCase() }
-        : { mobile: mobile.replace(/\D/g, '') }),
+        : { mobile: mobileDigits.slice(0, 10) }),
     }),
-    [verificationMethod, orderNumber, email, mobile],
+    [verificationMethod, orderNumber, email, mobileDigits],
   );
 
   const {
     order: trackedOrder,
-    lastUpdated,
     loading: isTrackingLoading,
     error: trackingError,
     reset,
@@ -83,14 +110,21 @@ export function TrackOrder() {
       return;
     }
 
-    if (verificationMethod === 'email' && !verificationPayload.email) {
+    if (verificationMethod === 'email' && !email.trim()) {
       setError('Please enter the email used during checkout.');
       return;
     }
 
-    if (verificationMethod === 'mobile' && !verificationPayload.mobile) {
-      setError('Please enter the mobile number used during checkout.');
-      return;
+    if (verificationMethod === 'mobile') {
+      if (!mobileDigits) {
+        setError('Please enter the mobile number used during checkout.');
+        return;
+      }
+      if (!isValidMobile(mobile)) {
+        setError(PHONE_ERROR);
+        setMobileTouched(true);
+        return;
+      }
     }
 
     reset();
@@ -122,7 +156,7 @@ export function TrackOrder() {
   };
 
   return (
-    <div className="bg-black text-white min-h-screen px-6 py-28 md:py-32">
+    <div className="bg-black text-white min-h-screen px-4 py-20 sm:px-6 sm:py-28 md:py-32">
       <div className="max-w-6xl mx-auto">
         {!trackedOrder ? (
           <motion.div
@@ -157,7 +191,10 @@ export function TrackOrder() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setVerificationMethod('mobile')}
+                  onClick={() => {
+                    setVerificationMethod('mobile');
+                    setMobileTouched(false);
+                  }}
                   className={cn(
                     'px-4 py-2 rounded-full text-sm transition-colors cursor-pointer',
                     verificationMethod === 'mobile'
@@ -207,15 +244,53 @@ export function TrackOrder() {
                     <label htmlFor="track-mobile" className={labelClassName}>
                       Mobile number <span className="text-[#E33E2B]">*</span>
                     </label>
-                    <input
-                      id="track-mobile"
-                      type="tel"
-                      value={mobile}
-                      onChange={(event) => setMobile(event.target.value)}
-                      placeholder="10-digit mobile number"
-                      className={fieldClassName}
-                      autoComplete="tel"
-                    />
+                    <div
+                      className={cn(
+                        'flex items-center gap-3 border-b py-1 transition-colors duration-300',
+                        mobileError
+                          ? 'border-red-500/60 focus-within:border-red-400'
+                          : 'border-white/20 focus-within:border-[#E33E2B]/80',
+                      )}
+                    >
+                      <select
+                        id="track-mobile-country"
+                        value={mobileCountryCode}
+                        onChange={(event) => setMobileCountryCode(event.target.value)}
+                        aria-label="Country code"
+                        className="shrink-0 w-[4.5rem] bg-transparent border-0 py-2 text-white outline-none cursor-pointer"
+                      >
+                        {PHONE_COUNTRY_CODES.map((option) => (
+                          <option key={option.value} value={option.value} className="bg-[#111112]">
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        id="track-mobile"
+                        type="tel"
+                        value={mobile}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setMobile(value);
+                          if (/[a-zA-Z]/.test(value) || getPhoneDigits(value).length > 10) {
+                            setMobileTouched(true);
+                          }
+                        }}
+                        onBlur={() => setMobileTouched(true)}
+                        placeholder="10-digit mobile number"
+                        className="flex-1 min-w-0 bg-transparent border-0 py-2 text-white placeholder-neutral-600 outline-none"
+                        autoComplete="tel-national"
+                        inputMode="numeric"
+                        maxLength={15}
+                        aria-invalid={Boolean(mobileError)}
+                        aria-describedby={mobileError ? 'track-mobile-error' : undefined}
+                      />
+                    </div>
+                    {mobileError && (
+                      <p id="track-mobile-error" className="mt-2 text-sm text-red-400">
+                        {mobileError}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -253,7 +328,6 @@ export function TrackOrder() {
           >
             <OrderTrackingDashboard
               order={trackedOrder}
-              lastUpdated={lastUpdated}
               isRefreshing={isTrackingLoading}
               isDownloading={isDownloading}
               onDownloadInvoice={handleDownloadInvoice}

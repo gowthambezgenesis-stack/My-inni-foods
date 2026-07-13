@@ -2,12 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Shield, Trash2, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CreateAdminDrawer } from '../../components/admin/CreateAdminDrawer';
+import { AdminOutlinedDropdown } from '../../components/admin/AdminOutlinedDropdown';
 import { AdminUser, fetchAdminUsers, removeAdminUser, updateUserRole } from '../../features/admin/adminApi';
 import { ADMIN_ROLES, formatRoleLabel, isAdminUserActive } from '../../lib/adminRoles';
+import { useAdminThemeClasses } from '../../lib/adminTheme';
 import { useAuthStore } from '../../store/authStore';
+import { cn } from '../../lib/utils';
 
 export function Users() {
   const { user: currentUser, isSuperAdmin } = useAuthStore();
+  const t = useAdminThemeClasses();
   const currentUserId = currentUser?.id ? Number(currentUser.id) : null;
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,16 +76,26 @@ export function Users() {
     }
   };
 
+  const roleOptions = ADMIN_ROLES.map((role) => ({
+    value: role,
+    label: formatRoleLabel(role),
+  }));
+
+  const roleFilterOptions = [
+    { value: '', label: 'All Roles' },
+    ...roleOptions,
+  ];
+
   return (
     <>
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2">
+            <h2 className={cn('text-3xl font-bold tracking-tight flex items-center gap-2', t.heading)}>
               <Shield className="text-orange-500" size={28} />
               Users & Admins
             </h2>
-            <p className="text-neutral-400 mt-1">Manage admin team access and roles.</p>
+            <p className={cn('mt-1', t.body)}>Manage admin team access and roles.</p>
           </div>
           <button
             type="button"
@@ -94,68 +108,60 @@ export function Users() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <select
+          <AdminOutlinedDropdown
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 bg-neutral-950 border border-white/[0.08] rounded-lg text-sm text-neutral-300 focus:outline-none focus:border-orange-500 max-w-xs"
-          >
-            <option value="">All Roles</option>
-            {ADMIN_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {formatRoleLabel(role)}
-              </option>
-            ))}
-          </select>
+            options={roleFilterOptions}
+            onChange={setRoleFilter}
+            ariaLabel="Filter users by role"
+            className="max-w-xs w-full sm:w-56"
+          />
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-neutral-400 text-sm">Loading users...</div>
+          <div className={cn('text-center py-12 text-sm', t.loading)}>Loading users...</div>
         ) : error ? (
           <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center text-red-400 text-sm">
             {error}
           </div>
         ) : (
-          <div className="bg-neutral-950 border border-white/[0.08] rounded-xl overflow-hidden">
+          <div className={cn('border rounded-xl overflow-hidden', t.surface)}>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/[0.08] bg-neutral-900/50">
-                    <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">User</th>
-                    <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Email</th>
-                    <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Role</th>
-                    <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Status</th>
-                    <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Last Login</th>
+                  <tr className={cn('border-b', t.border, t.surfaceMuted)}>
+                    <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>User</th>
+                    <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Email</th>
+                    <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Role</th>
+                    <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Status</th>
                     {isSuperAdmin && (
-                      <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400 text-right">
+                      <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider text-right', t.label)}>
                         Actions
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.04]">
+                <tbody className={cn('divide-y', t.divide)}>
                   {users.map((user) => {
                     const isActive = isAdminUserActive(user);
 
                     return (
-                    <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={user.id} className={cn('transition-colors', t.rowHover)}>
                       <td className="p-4">
-                        <p className="text-sm font-medium text-white">{user.full_name || user.username}</p>
-                        <p className="text-[10px] text-neutral-500 font-mono">ID: {user.id}</p>
+                        <p className={cn('text-sm font-medium', t.heading)}>{user.full_name || user.username}</p>
+                        <p className={cn('text-[10px] font-mono', t.muted)}>ID: {user.id}</p>
                       </td>
-                      <td className="p-4 text-sm text-neutral-300">{user.email}</td>
+                      <td className={cn('p-4 text-sm', t.bodyStrong)}>{user.email}</td>
                       <td className="p-4">
-                        <select
+                        <AdminOutlinedDropdown
                           value={user.role}
+                          options={roleOptions}
+                          onChange={(role) => handleRoleChange(user.id, role)}
                           disabled={updatingId === user.id}
-                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                          className="bg-neutral-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-orange-500 disabled:opacity-50"
-                        >
-                          {ADMIN_ROLES.map((role) => (
-                            <option key={role} value={role}>
-                              {formatRoleLabel(role)}
-                            </option>
-                          ))}
-                        </select>
+                          loading={updatingId === user.id}
+                          ariaLabel={`Change role for ${user.email}`}
+                          size="sm"
+                          className="min-w-[10.5rem]"
+                        />
                       </td>
                       <td className="p-4">
                         <span
@@ -166,19 +172,16 @@ export function Users() {
                           {isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="p-4 text-xs text-neutral-500 font-mono">
-                        {user.last_login ? new Date(user.last_login).toLocaleDateString('en-IN') : '—'}
-                      </td>
                       {isSuperAdmin && (
                         <td className="p-4 text-right">
                           {currentUserId === user.id ? (
-                            <span className="text-xs text-neutral-500">You</span>
+                            <span className={cn('text-xs', t.muted)}>You</span>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleRemove(user)}
                               disabled={removingId === user.id}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20 hover:text-red-200 disabled:opacity-50 cursor-pointer"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20 hover:text-red-600 hover:border-red-500/40 disabled:opacity-50 cursor-pointer"
                             >
                               {removingId === user.id ? (
                                 <Loader2 size={14} className="animate-spin" />
@@ -197,7 +200,7 @@ export function Users() {
               </table>
             </div>
             {users.length === 0 && (
-              <p className="p-8 text-center text-sm text-neutral-500">No users found.</p>
+              <p className={cn('p-8 text-center text-sm', t.muted)}>No users found.</p>
             )}
           </div>
         )}

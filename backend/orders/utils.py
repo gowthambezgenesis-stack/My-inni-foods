@@ -22,6 +22,21 @@ def normalize_phone(value: str) -> str:
     return digits[-10:] if len(digits) >= 10 else digits
 
 
+def format_shipping_phone(address: dict | None) -> str:
+    if not address:
+        return ''
+
+    phone = str(address.get('phone', '') or '').strip()
+    if not phone:
+        return ''
+
+    country_code = str(address.get('phoneCountryCode', '+91') or '+91').strip()
+    if country_code and not country_code.startswith('+'):
+        country_code = f'+{country_code}'
+
+    return f'{country_code} {phone}'
+
+
 def get_order_contact_email(order: Order) -> str | None:
     address = order.shipping_address or {}
     address_email = (address.get('email') or '').strip().lower()
@@ -170,14 +185,6 @@ def build_order_tracking_history(order: Order) -> list[dict]:
 
     stages: list[tuple[str, str, object]] = [
         ('Order Received', f'At {origin}', lambda o: True),
-        (
-            'Payment Confirmed',
-            'Payment verified successfully',
-            lambda o: (
-                o.payment_status == Order.PaymentStatus.PAID
-                or _status_at_least(o, Order.Status.PROCESSING)
-            ),
-        ),
         ('Processing', f'At {origin}', lambda o: _status_at_least(o, Order.Status.PROCESSING)),
         (
             'Shipping',

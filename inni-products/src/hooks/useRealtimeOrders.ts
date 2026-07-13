@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 
 import { fetchOrders, FetchOrdersParams } from '../features/orders/orderApi';
 import { Order } from '../types';
@@ -10,11 +9,6 @@ interface UseRealtimeOrdersOptions {
   intervalMs?: number;
   enabled?: boolean;
   filters?: FetchOrdersParams;
-  notifyOnChanges?: boolean;
-}
-
-function orderSnapshotKey(order: Order): string {
-  return `${order.status}|${order.payment_status}|${order.updated_at}`;
 }
 
 export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
@@ -22,7 +16,6 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     intervalMs = DEFAULT_INTERVAL_MS,
     enabled = true,
     filters,
-    notifyOnChanges = true,
   } = options;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -33,7 +26,6 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
   const filtersRef = useRef(filters ?? {});
   filtersRef.current = filters ?? {};
 
-  const snapshotRef = useRef<Map<string, string>>(new Map());
   const isInitialRef = useRef(true);
 
   const filtersKey = JSON.stringify(filters ?? {});
@@ -48,21 +40,6 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
 
       const data = await fetchOrders(filtersRef.current);
 
-      if (!isInitial && notifyOnChanges) {
-        for (const order of data) {
-          const previous = snapshotRef.current.get(order.id);
-          if (!previous) {
-            toast.success(`New order ${order.order_number}`, { id: `new-order-${order.id}` });
-          } else if (previous !== orderSnapshotKey(order)) {
-            toast(`Order ${order.order_number} updated`, {
-              id: `update-order-${order.id}`,
-              icon: '📦',
-            });
-          }
-        }
-      }
-
-      snapshotRef.current = new Map(data.map((order) => [order.id, orderSnapshotKey(order)]));
       setOrders(data);
       setError(null);
       setLastUpdated(new Date());
@@ -76,7 +53,7 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
         isInitialRef.current = false;
       }
     }
-  }, [notifyOnChanges]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -84,7 +61,6 @@ export function useRealtimeOrders(options: UseRealtimeOrdersOptions = {}) {
     }
 
     isInitialRef.current = true;
-    snapshotRef.current = new Map();
 
     let intervalId: number | undefined;
 

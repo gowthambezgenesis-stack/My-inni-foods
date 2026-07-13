@@ -6,14 +6,12 @@ export const ADMIN_PANEL_ROLES: AdminRole[] = [
   'super_admin',
   'order_manager',
   'support_agent',
-  'viewer',
 ];
 
 export const CREATABLE_ADMIN_ROLES: Array<{ value: AdminRole; label: string }> = [
   { value: 'super_admin', label: 'Super Admin' },
   { value: 'order_manager', label: 'Order Manager' },
   { value: 'support_agent', label: 'Support Agent' },
-  { value: 'viewer', label: 'Viewer' },
 ];
 
 export const ADMIN_ROLES: AdminRole[] = CREATABLE_ADMIN_ROLES.map((option) => option.value);
@@ -33,7 +31,7 @@ export function formatRoleLabel(role: string | null | undefined): string {
 }
 
 export function canAccessOrders(role: AdminRole | null | undefined): boolean {
-  return role === 'super_admin' || role === 'order_manager' || role === 'support_agent' || role === 'viewer';
+  return role === 'super_admin' || role === 'order_manager' || role === 'support_agent';
 }
 
 export function canManageOrders(role: AdminRole | null | undefined): boolean {
@@ -51,7 +49,7 @@ export function canViewRevenue(role: AdminRole | null | undefined): boolean {
 interface AdminMenuItem {
   name: string;
   path: string;
-  icon: 'dashboard' | 'orders' | 'users' | 'settings';
+  icon: 'dashboard' | 'orders' | 'users';
 }
 
 export function getAdminMenuItems(role: AdminRole | null | undefined, isSuperAdmin: boolean): AdminMenuItem[] {
@@ -63,10 +61,6 @@ export function getAdminMenuItems(role: AdminRole | null | undefined, isSuperAdm
 
   if (canManageUsers(role) || isSuperAdmin) {
     items.push({ name: 'Users', path: '/admin/users', icon: 'users' });
-  }
-
-  if (isSuperAdmin) {
-    items.push({ name: 'Settings', path: '/admin/settings', icon: 'settings' });
   }
 
   return items;

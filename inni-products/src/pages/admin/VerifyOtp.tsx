@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 import { ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
 
@@ -28,6 +29,8 @@ import { sendAdminOtp, verifyAdminOtp } from '../../features/admin/adminApi';
 
 import { useAuthStore } from '../../store/authStore';
 
+import { isAdminPanelRole } from '../../routes/ProtectedRoute';
+
 import { cn } from '../../lib/utils';
 
 
@@ -53,7 +56,7 @@ export function AdminVerifyOtp() {
 
   const navigate = useNavigate();
 
-  const { login, isAuthenticated, isSuperAdmin, initialize } = useAuthStore();
+  const { login, isAuthenticated, role, initialize } = useAuthStore();
 
   const [email, setEmail] = useState<string | null>(() => getAdminLoginEmail());
 
@@ -79,13 +82,13 @@ export function AdminVerifyOtp() {
 
   useEffect(() => {
 
-    if (isAuthenticated && isSuperAdmin) {
+    if (isAuthenticated && isAdminPanelRole(role)) {
 
       navigate('/admin/dashboard', { replace: true });
 
     }
 
-  }, [isAuthenticated, isSuperAdmin, navigate]);
+  }, [isAuthenticated, role, navigate]);
 
 
 
@@ -197,17 +200,18 @@ export function AdminVerifyOtp() {
 
     try {
 
-      await sendAdminOtp(email);
-
+      const response = await sendAdminOtp(email);
       setAdminLoginSession(email);
-
       setOtp('');
-
       setRemainingSeconds(getRemainingSeconds());
-
+      toast.success(response.message, { id: 'admin-otp-resend' });
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, 'Unable to resend code. Try again later.'));
-
+      const message = getApiErrorMessage(
+        err,
+        'We couldn’t resend your code right now. Please try again in a moment.',
+      );
+      setError(message);
+      toast.error(message, { id: 'admin-otp-resend' });
     } finally {
 
       setIsResending(false);

@@ -39,11 +39,22 @@ class CreateAdminResponseSerializer(serializers.Serializer):
 
 
 class DashboardStatsSerializer(serializers.Serializer):
-    total_orders = serializers.IntegerField()
-    pending_orders = serializers.IntegerField()
+    total_orders = serializers.IntegerField(
+        help_text='Count of orders created in the current calendar month.',
+    )
+    not_delivered_orders = serializers.IntegerField(
+        help_text='Orders that have not yet been delivered.',
+    )
     todays_orders = serializers.IntegerField()
-    paid_orders = serializers.IntegerField()
-    total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True)
+    paid_orders = serializers.IntegerField(
+        help_text='Paid orders created in the current calendar month.',
+    )
+    total_revenue = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        allow_null=True,
+        help_text='Paid revenue for the current calendar month.',
+    )
     todays_sales = serializers.DecimalField(max_digits=12, decimal_places=2, allow_null=True)
     users_by_role = serializers.DictField(child=serializers.IntegerField())
     recent_orders = OrderListSerializer(many=True)

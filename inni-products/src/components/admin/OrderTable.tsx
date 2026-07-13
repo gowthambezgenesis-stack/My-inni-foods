@@ -1,8 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye } from 'lucide-react';
 import { Order } from '../../types';
 import { formatOrderStatusLabel } from '../../lib/orderStatuses';
+import { useAdminThemeClasses } from '../../lib/adminTheme';
+import { formatShippingPhone } from '../../lib/phone';
+import { cn } from '../../lib/utils';
 
 interface OrderTableProps {
   orders: Order[];
@@ -25,6 +28,9 @@ const paymentColors: Record<string, string> = {
 };
 
 export function OrderTable({ orders }: OrderTableProps) {
+  const navigate = useNavigate();
+  const t = useAdminThemeClasses();
+
   const formatDate = (date: string) =>
     new Date(date).toLocaleString('en-IN', {
       day: '2-digit',
@@ -34,47 +40,64 @@ export function OrderTable({ orders }: OrderTableProps) {
       minute: '2-digit',
     });
 
+  const openOrder = (orderId: string) => {
+    navigate(`/admin/orders/${orderId}`);
+  };
+
   return (
-    <div className="bg-neutral-950 border border-white/[0.08] rounded-xl overflow-hidden font-sans">
+    <div className={cn('border rounded-xl overflow-hidden font-sans', t.surface)}>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-white/[0.08] bg-neutral-900/50">
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Order ID</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Date</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Username</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Customer</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Destination</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Total</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400">Payment</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400 min-w-[140px]">Fulfillment</th>
-              <th className="p-4 text-xs font-semibold uppercase tracking-wider text-neutral-400 text-right">Actions</th>
+            <tr className={cn('border-b', t.border, t.surfaceMuted)}>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Order ID</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Date</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Username</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Customer</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Destination</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Total</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider', t.label)}>Payment</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider min-w-[140px]', t.label)}>Fulfillment</th>
+              <th className={cn('p-4 text-xs font-semibold uppercase tracking-wider text-right', t.label)}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.04]">
+          <tbody className={cn('divide-y', t.divide)}>
             {orders.length > 0 ? (
               orders.map((order) => (
-                <tr key={order.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="p-4 text-sm font-semibold text-white font-mono">{order.order_number}</td>
-                  <td className="p-4 text-xs text-neutral-400 font-mono">{formatDate(order.created_at)}</td>
-                  <td className="p-4 text-sm text-white">
+                <tr
+                  key={order.id}
+                  onClick={() => openOrder(order.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openOrder(order.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View order ${order.order_number}`}
+                  className={cn('transition-colors cursor-pointer focus:outline-none', t.rowHover, t.rowFocus)}
+                >
+                  <td className={cn('p-4 text-sm font-semibold font-mono', t.heading)}>{order.order_number}</td>
+                  <td className={cn('p-4 text-xs font-mono', t.body)}>{formatDate(order.created_at)}</td>
+                  <td className={cn('p-4 text-sm', t.heading)}>
                     {order.customer_name || 'Guest'}
                     {order.username && (
-                      <span className="block text-[10px] text-neutral-500 font-mono mt-0.5">{order.username}</span>
+                      <span className={cn('block text-[10px] font-mono mt-0.5', t.muted)}>{order.username}</span>
                     )}
                   </td>
-                  <td className="p-4 text-xs text-neutral-300">
+                  <td className={cn('p-4 text-xs', t.bodyStrong)}>
                     <span className="block">{order.user_email || '—'}</span>
                     {order.shipping_address?.phone && (
-                      <span className="block text-[10px] text-neutral-500 font-mono mt-0.5">
-                        {order.shipping_address.phone}
+                      <span className={cn('block text-[10px] font-mono mt-0.5', t.muted)}>
+                        {formatShippingPhone(order.shipping_address)}
                       </span>
                     )}
                   </td>
-                  <td className="p-4 text-sm text-neutral-300">
+                  <td className={cn('p-4 text-sm', t.bodyStrong)}>
                     {order.shipping_address?.city}, {order.shipping_address?.state}
                   </td>
-                  <td className="p-4 text-sm font-semibold text-white font-mono">₹{order.total_amount}</td>
+                  <td className={cn('p-4 text-sm font-semibold font-mono', t.heading)}>₹{order.total_amount}</td>
                   <td className="p-4 text-xs font-semibold">
                     <span className="flex items-center gap-1.5">
                       <span className={`w-1.5 h-1.5 rounded-full ${
@@ -96,7 +119,9 @@ export function OrderTable({ orders }: OrderTableProps) {
                   <td className="p-4 text-right">
                     <Link
                       to={`/admin/orders/${order.id}`}
-                      className="p-1.5 hover:bg-white/10 rounded-lg text-neutral-400 hover:text-white transition-colors inline-flex items-center"
+                      onClick={(event) => event.stopPropagation()}
+                      className={cn('p-1.5 rounded-lg transition-colors inline-flex items-center', t.actionIconBtn)}
+                      aria-label={`View order ${order.order_number}`}
                     >
                       <Eye size={16} />
                     </Link>
@@ -105,7 +130,7 @@ export function OrderTable({ orders }: OrderTableProps) {
               ))
             ) : (
               <tr>
-                <td colSpan={9} className="p-8 text-center text-sm text-neutral-500">
+                <td colSpan={9} className={cn('p-8 text-center text-sm', t.muted)}>
                   No orders found.
                 </td>
               </tr>

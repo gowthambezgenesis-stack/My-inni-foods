@@ -7,7 +7,7 @@ from accounts.utils import user_is_admin_staff
 
 from .models import Order
 
-RECENT_DELIVERED_DAYS = 7
+RECENT_DELIVERED_DAYS = 1
 
 
 def parse_bool_query_param(value: str | None) -> bool:
@@ -18,7 +18,7 @@ def parse_bool_query_param(value: str | None) -> bool:
 
 def apply_recent_orders_filter(queryset: QuerySet) -> QuerySet:
     """
-    Recent orders = not delivered, or delivered within the last 7 days.
+    Recent orders = not delivered, or delivered within the last day.
     Uses updated_at as the delivery timestamp when status is delivered.
     """
     cutoff = timezone.now() - timedelta(days=RECENT_DELIVERED_DAYS)

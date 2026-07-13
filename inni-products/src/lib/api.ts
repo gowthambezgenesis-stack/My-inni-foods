@@ -80,7 +80,17 @@ function processRefreshQueue(token: string | null) {
   refreshQueue = [];
 }
 
-/** On 401, attempt silent refresh via HttpOnly cookie; logout if refresh fails. */
+function isAuthBootstrapEndpoint(url?: string): boolean {
+  if (!url) return false;
+  return (
+    url.includes('/auth/login/') ||
+    url.includes('/auth/refresh/') ||
+    url.includes('/auth/logout/') ||
+    url.includes('/admin/auth/')
+  );
+}
+
+/** On 401, attempt silent refresh via HttpOnly cookie; clear session if refresh fails. */
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -90,12 +100,14 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const isAuthEndpoint =
-      originalRequest.url?.includes('/auth/login/') ||
-      originalRequest.url?.includes('/auth/refresh/') ||
-      originalRequest.url?.includes('/admin/auth/');
+    // Never start a refresh loop from auth bootstrap endpoints themselves.
+    if (isAuthBootstrapEndpoint(originalRequest.url)) {
+      return Promise.reject(error);
+    }
 
-    if (isAuthEndpoint) {
+    // No access token means there is no session to refresh — avoid pointless churn.
+    if (!localStorage.getItem('inni_access_token')) {
+      useAuthStore.getState().clearSession();
       return Promise.reject(error);
     }
 
@@ -124,7 +136,9 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       processRefreshQueue(null);
-      useAuthStore.getState().logout();
+      // Clear local session only — do not call logout API here (that caused
+      // refresh ↔ logout infinite 401 loops when the refresh cookie was missing).
+      useAuthStore.getState().clearSession();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

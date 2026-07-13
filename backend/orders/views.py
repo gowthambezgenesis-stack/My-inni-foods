@@ -59,7 +59,7 @@ def _lookup_verified_order(validated_data: dict) -> Order | None:
         summary='List orders',
         description=(
             'Customers see their own orders; admin roles see all orders. '
-            'Use `?recent=true` to exclude delivered orders older than 7 days.'
+            'Use `?recent=true` to exclude delivered orders older than 1 day.'
         ),
     ),
 )
@@ -67,7 +67,7 @@ class OrderListView(ListAPIView):
     """
     GET /api/orders/
     Customers see their own orders; admin roles see all orders.
-    ?recent=true — active orders plus delivered within the last 7 days.
+    ?recent=true — active orders plus delivered within the last 24 hours.
     """
 
     serializer_class = OrderListSerializer
@@ -127,7 +127,10 @@ class OrderCreateView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         order = serializer.save()
-        logger.info('Created order %s with Razorpay id %s', order.order_number, order.razorpay_order_id)
+        if order.payment_method == Order.PaymentMethod.COD:
+            logger.info('Created COD order %s (payment pending)', order.order_number)
+        else:
+            logger.info('Created order %s with Razorpay id %s', order.order_number, order.razorpay_order_id)
 
         response_serializer = OrderCreateResponseSerializer(order)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)

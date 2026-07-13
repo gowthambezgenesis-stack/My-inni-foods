@@ -1,18 +1,22 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ADMIN_PANEL_ROLES } from '../lib/adminRoles';
+import { useAdminThemeClasses } from '../lib/adminTheme';
 import { useAuthStore } from '../store/authStore';
+import { cn } from '../lib/utils';
 
 interface ProtectedRouteProps {
-  allowedRoles?: Array<'super_admin' | 'order_manager' | 'support_agent' | 'viewer'>;
+  allowedRoles?: Array<'super_admin' | 'order_manager' | 'support_agent'>;
   requireSuperAdmin?: boolean;
   children?: React.ReactNode;
 }
 
 function AdminRouteLoading() {
+  const t = useAdminThemeClasses();
+
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <p className="text-sm text-neutral-400">Loading admin session...</p>
+    <div className={cn('min-h-screen flex items-center justify-center', t.shell)}>
+      <p className={cn('text-sm', t.loading)}>Loading admin session...</p>
     </div>
   );
 }

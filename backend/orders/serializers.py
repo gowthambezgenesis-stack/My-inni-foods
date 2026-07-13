@@ -32,10 +32,17 @@ class ShippingAddressSerializer(serializers.Serializer):
     firstName = serializers.CharField(max_length=100)
     lastName = serializers.CharField(max_length=100)
     phone = serializers.CharField(max_length=20)
+    phoneCountryCode = serializers.CharField(max_length=8, required=False, default='+91')
     address = serializers.CharField(max_length=500)
     city = serializers.CharField(max_length=100)
     state = serializers.CharField(max_length=100)
     zip = serializers.CharField(max_length=20)
+
+    def validate_phoneCountryCode(self, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned.startswith('+'):
+            cleaned = f'+{cleaned}'
+        return cleaned
 
     def validate_phone(self, value: str) -> str:
         if re.search(r'[a-zA-Z]', value):
@@ -67,7 +74,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderItemCreateSerializer(serializers.Serializer):
     product_id = serializers.CharField()
     name = serializers.CharField(required=False, allow_blank=True, default='')
-    image = serializers.URLField(required=False, allow_blank=True, default='')
+    image = serializers.CharField(required=False, allow_blank=True, default='')
     quantity = serializers.IntegerField(min_value=1)
     price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'))
     weight = serializers.CharField(required=False, allow_blank=True, default='')
@@ -145,7 +152,7 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 
 class OrderCreateSerializer(serializers.Serializer):
-    """Validates checkout payload and creates order + Razorpay order."""
+    """Validates checkout payload and creates order (+ Razorpay order when applicable)."""
 
     email = serializers.EmailField(required=False, allow_blank=True)
     shipping_address = ShippingAddressSerializer()
@@ -155,6 +162,11 @@ class OrderCreateSerializer(serializers.Serializer):
         max_digits=10, decimal_places=2, min_value=Decimal('0'), required=False, default=Decimal('0')
     )
     currency = serializers.CharField(max_length=3, default='INR', required=False)
+    payment_method = serializers.ChoiceField(
+        choices=Order.PaymentMethod.choices,
+        default=Order.PaymentMethod.RAZORPAY,
+        required=False,
+    )
 
     def validate_currency(self, value: str) -> str:
         return value.upper()
@@ -195,6 +207,7 @@ class OrderCreateSerializer(serializers.Serializer):
             shipping_address['email'] = email
         total_amount = validated_data['total_amount']
         currency = validated_data.get('currency', 'INR')
+        payment_method = validated_data.get('payment_method', Order.PaymentMethod.RAZORPAY)
 
         order_number = Order.generate_order_number()
         order = Order.objects.create(
@@ -203,6 +216,7 @@ class OrderCreateSerializer(serializers.Serializer):
             total_amount=total_amount,
             status=Order.Status.PENDING,
             payment_status=Order.PaymentStatus.PENDING,
+            payment_method=payment_method,
             shipping_address=shipping_address,
         )
 
@@ -216,6 +230,9 @@ class OrderCreateSerializer(serializers.Serializer):
                 price_at_time=item_data['price'],
                 weight=item_data.get('weight', ''),
             )
+
+        if payment_method == Order.PaymentMethod.COD:
+            return order
 
         if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
             order.delete()
@@ -279,6 +296,7 @@ class OrderCreateResponseSerializer(serializers.ModelSerializer):
             'amount_paise',
             'status',
             'payment_status',
+            'payment_method',
             'shipping_address',
             'razorpay_order_id',
             'key_id',
@@ -288,6 +306,8 @@ class OrderCreateResponseSerializer(serializers.ModelSerializer):
         ]
 
     def get_key_id(self, obj: Order) -> str:
+        if obj.payment_method == Order.PaymentMethod.COD:
+            return ''
         return settings.RAZORPAY_KEY_ID
 
     def get_amount_paise(self, obj: Order) -> int:

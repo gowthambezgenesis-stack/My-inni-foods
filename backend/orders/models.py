@@ -21,6 +21,10 @@ class Order(models.Model):
         FAILED = 'failed', 'Failed'
         REFUNDED = 'refunded', 'Refunded'
 
+    class PaymentMethod(models.TextChoices):
+        RAZORPAY = 'razorpay', 'Razorpay'
+        COD = 'cod', 'Cash on Delivery'
+
     order_number = models.CharField(max_length=50, unique=True, db_index=True)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -39,6 +43,11 @@ class Order(models.Model):
         max_length=20,
         choices=PaymentStatus.choices,
         default=PaymentStatus.PENDING,
+    )
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.RAZORPAY,
     )
     shipping_address = models.JSONField(default=dict, blank=True)
     razorpay_order_id = models.CharField(max_length=100, blank=True, default='')
@@ -67,7 +76,7 @@ class OrderItem(models.Model):
     )
     product_id = models.CharField(max_length=100)
     product_name = models.CharField(max_length=200)
-    product_image = models.URLField(blank=True, default='')
+    product_image = models.CharField(max_length=500, blank=True, default='')
     quantity = models.PositiveIntegerField(default=1)
     price_at_time = models.DecimalField(max_digits=10, decimal_places=2)
     weight = models.CharField(max_length=50, blank=True, default='')

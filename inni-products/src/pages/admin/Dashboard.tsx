@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  DollarSign,
+  IndianRupee,
   ShoppingBag,
   Clock,
   TrendingUp,
@@ -20,6 +20,8 @@ import {
   formatRoleLabel,
 } from '../../lib/adminRoles';
 import { useAuthStore } from '../../store/authStore';
+import { useAdminThemeClasses, type AdminThemeClasses } from '../../lib/adminTheme';
+import { cn } from '../../lib/utils';
 
 function StatCard({
   name,
@@ -27,31 +29,34 @@ function StatCard({
   icon: Icon,
   subtext,
   gradient,
+  t,
 }: {
   name: string;
   value: string;
   icon: React.ElementType;
   subtext: string;
   gradient: string;
+  t: AdminThemeClasses;
 }) {
   return (
-    <div className="bg-neutral-950 border border-white/[0.08] rounded-xl p-6 relative overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-2xl hover:shadow-orange-500/5">
+    <div className={cn('border rounded-xl p-6 relative overflow-hidden transition-all duration-300', t.surface, t.surfaceHover)}>
       <div className="flex justify-between items-start">
         <div className="space-y-2">
-          <p className="text-xs font-medium text-neutral-400 uppercase tracking-wider">{name}</p>
-          <p className="text-3xl font-semibold text-white tracking-tight font-mono">{value}</p>
+          <p className={cn('text-xs font-medium uppercase tracking-wider', t.label)}>{name}</p>
+          <p className={cn('text-3xl font-semibold tracking-tight font-mono', t.heading)}>{value}</p>
         </div>
         <div className={`p-2.5 rounded-lg bg-gradient-to-br ${gradient} text-white`}>
           <Icon size={20} />
         </div>
       </div>
-      <p className="mt-4 text-[11px] text-neutral-500 font-mono">{subtext}</p>
+      <p className={cn('mt-4 text-[11px] font-mono', t.muted)}>{subtext}</p>
     </div>
   );
 }
 
 export function Dashboard() {
   const { role, isSuperAdmin, user } = useAuthStore();
+  const t = useAdminThemeClasses();
   const { stats, loading, error, lastUpdated: statsUpdated } = useRealtimeDashboardStats();
   const showOrders = canAccessOrders(role) || isSuperAdmin;
   const {
@@ -59,7 +64,7 @@ export function Dashboard() {
     loading: ordersLoading,
     error: ordersError,
     lastUpdated: ordersUpdated,
-  } = useRealtimeOrders({ enabled: showOrders });
+  } = useRealtimeOrders({ enabled: showOrders, filters: { recent: true } });
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined) return '—';
@@ -72,7 +77,7 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] text-neutral-400 text-sm">
+      <div className={cn('flex items-center justify-center min-h-[50vh] text-sm', t.loading)}>
         Loading dashboard...
       </div>
     );
@@ -87,15 +92,17 @@ export function Dashboard() {
   }
 
   const showRevenue = canViewRevenue(role) || isSuperAdmin;
+  const recentOrders = orders.slice(0, 7);
+  const recentOrdersLabel = `${recentOrders.length} recent order${recentOrders.length === 1 ? '' : 's'}`;
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white">{dashboardTitle}</h2>
-          <p className="text-neutral-400 mt-1">
+          <h2 className={cn('text-3xl font-bold tracking-tight', t.heading)}>{dashboardTitle}</h2>
+          <p className={cn('mt-1', t.body)}>
             {isSuperAdmin
-              ? 'Real-time overview of orders, revenue, and store operations.'
+              ? 'Real-time overview of recent orders, revenue, and store operations.'
               : `Welcome back${user?.full_name ? `, ${user.full_name}` : ''}. Here is your workspace overview.`}
           </p>
         </div>
@@ -108,9 +115,10 @@ export function Dashboard() {
             <StatCard
               name="Total Revenue"
               value={formatCurrency(stats.total_revenue)}
-              icon={DollarSign}
-              subtext={`${stats.paid_orders} paid orders`}
+              icon={IndianRupee}
+              subtext={`${stats.paid_orders} paid this month`}
               gradient="from-orange-500 to-amber-500"
+              t={t}
             />
             <StatCard
               name="Today's Sales"
@@ -118,6 +126,7 @@ export function Dashboard() {
               icon={TrendingUp}
               subtext="Paid orders today"
               gradient="from-emerald-500 to-teal-500"
+              t={t}
             />
           </>
         )}
@@ -125,21 +134,23 @@ export function Dashboard() {
           name="Total Orders"
           value={String(stats.total_orders)}
           icon={ShoppingBag}
-          subtext={`${stats.todays_orders} orders today`}
+          subtext={`${stats.todays_orders} orders today · this month`}
           gradient="from-red-500 to-rose-500"
+          t={t}
         />
         <StatCard
-          name="Pending Orders"
-          value={String(stats.pending_orders)}
+          name="Pending Order"
+          value={String(stats.not_delivered_orders)}
           icon={Clock}
-          subtext="Awaiting payment or fulfillment"
+          subtext="Orders awaiting delivery"
           gradient="from-amber-500 to-yellow-500"
+          t={t}
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          ...(showOrders ? [{ label: 'View All Orders', path: '/admin/orders/all', icon: Package }] : []),
+          ...(showOrders ? [{ label: 'Recent Orders', path: '/admin/orders', icon: Package }] : []),
           ...(canManageUsers(role) || isSuperAdmin
             ? [{ label: 'Manage Users', path: '/admin/users', icon: Users }]
             : []),
@@ -149,15 +160,15 @@ export function Dashboard() {
             <Link
               key={action.path}
               to={action.path}
-              className="group flex items-center justify-between bg-neutral-950 border border-white/[0.08] hover:border-orange-500/30 rounded-xl px-5 py-4 transition-all"
+              className={cn('group flex items-center justify-between border hover:border-orange-500/30 rounded-xl px-5 py-4 transition-all', t.surface)}
             >
               <div className="flex items-center gap-3">
                 <Icon size={18} className="text-orange-400" />
-                <span className="text-sm font-medium text-white">{action.label}</span>
+                <span className={cn('text-sm font-medium', t.heading)}>{action.label}</span>
               </div>
               <ArrowRight
                 size={16}
-                className="text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all"
+                className={cn('group-hover:translate-x-0.5 transition-all', t.arrowMuted)}
               />
             </Link>
           );
@@ -169,17 +180,14 @@ export function Dashboard() {
           <div className={isSuperAdmin ? 'lg:col-span-2 space-y-4' : 'space-y-4'}>
             <div className="flex justify-between items-center gap-4">
               <div>
-                <h3 className="text-base font-semibold text-white">All Orders</h3>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  {ordersLoading ? 'Loading...' : `${orders.length} order${orders.length === 1 ? '' : 's'} total`}
+                <h3 className={cn('text-base font-semibold', t.heading)}>Recent Orders</h3>
+                <p className={cn('text-xs mt-0.5', t.muted)}>
+                  {ordersLoading ? 'Loading...' : recentOrdersLabel}
                 </p>
               </div>
-              <div className="flex items-center gap-4">
-                <LiveIndicator lastUpdated={ordersUpdated} />
-                <Link to="/admin/orders" className="text-xs text-orange-400 hover:text-orange-300 font-medium">
-                  Manage orders
-                </Link>
-              </div>
+              <Link to="/admin/orders" className="text-xs text-orange-400 hover:text-orange-300 font-medium">
+                View recent orders
+              </Link>
             </div>
 
             {ordersError ? (
@@ -187,27 +195,27 @@ export function Dashboard() {
                 {ordersError}
               </div>
             ) : ordersLoading ? (
-              <div className="bg-neutral-950 border border-white/[0.08] rounded-xl p-10 text-center text-sm text-neutral-400">
+              <div className={cn('border rounded-xl p-10 text-center text-sm', t.surface, t.loading)}>
                 Loading orders...
               </div>
             ) : (
-              <OrderTable orders={orders} />
+              <OrderTable orders={recentOrders} />
             )}
           </div>
         )}
 
         {isSuperAdmin && (
-          <div className="bg-neutral-950 border border-white/[0.08] rounded-xl p-6 h-fit">
-            <h3 className="text-base font-semibold text-white mb-6">Users by Role</h3>
+          <div className={cn('border rounded-xl p-6 h-fit', t.surface)}>
+            <h3 className={cn('text-base font-semibold mb-6', t.heading)}>Users by Role</h3>
             <div className="space-y-3">
               {Object.entries(stats.users_by_role).map(([roleKey, count]) => (
                 <div key={roleKey} className="flex items-center justify-between text-sm">
-                  <span className="text-neutral-400 capitalize">{roleKey.replace('_', ' ')}</span>
-                  <span className="font-mono text-white bg-white/[0.06] px-2 py-0.5 rounded">{count}</span>
+                  <span className={cn('capitalize', t.body)}>{roleKey.replace('_', ' ')}</span>
+                  <span className={cn('font-mono px-2 py-0.5 rounded', t.badge)}>{count}</span>
                 </div>
               ))}
               {Object.keys(stats.users_by_role).length === 0 && (
-                <p className="text-sm text-neutral-500">No user profiles yet.</p>
+                <p className={cn('text-sm', t.muted)}>No user profiles yet.</p>
               )}
             </div>
           </div>

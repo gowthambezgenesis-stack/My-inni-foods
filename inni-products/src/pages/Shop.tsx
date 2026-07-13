@@ -60,16 +60,16 @@ export function Shop() {
           </div>
         </div>
 
-        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <motion.div layout className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 items-stretch">
           <AnimatePresence mode="popLayout">
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="animate-pulse bg-transparent rounded-[2rem] p-6 border border-white/[0.05]">
-                  <div className="bg-neutral-900 rounded-2xl aspect-[4/5] mb-6 relative overflow-hidden" />
+                <div key={i} className="animate-pulse flex flex-col h-full bg-transparent rounded-[2rem] p-6 border border-white/[0.05]">
+                  <div className="bg-neutral-900 rounded-2xl aspect-[4/5] mb-6 relative overflow-hidden shrink-0" />
                   <div className="h-5 bg-neutral-900 rounded w-3/4 mx-auto mb-2" />
                   <div className="h-3 bg-neutral-900 rounded w-5/6 mx-auto mb-4" />
                   <div className="h-4 bg-neutral-900 rounded w-1/4 mx-auto mb-8" />
-                  <div className="h-10 bg-neutral-900 rounded-full w-full" />
+                  <div className="mt-auto h-10 bg-neutral-900 rounded-full w-full" />
                 </div>
               ))
             ) : (
@@ -90,12 +90,10 @@ export function Shop() {
   );
 }
 
-export function ProductCard({ product }: { product: Product; key?: string }) {
+export function ProductCard({ product }: { product: Product }) {
   const navigate = useNavigate();
-  const { addToCart, cartItems } = useCart();
+  const { addToCart } = useCart();
   const [added, setAdded] = React.useState(false);
-  
-  const inCartCount = cartItems.find(i => i.product.id === product.id)?.quantity || 0;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -111,9 +109,9 @@ export function ProductCard({ product }: { product: Product; key?: string }) {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       onClick={() => navigate(`/product/${product.id}`)}
-      className="group flex flex-col bg-transparent rounded-[2rem] p-6 border border-white/[0.05] hover:border-white/20 transition-colors cursor-pointer"
+      className="group flex h-full flex-col bg-transparent rounded-2xl sm:rounded-[2rem] p-3 sm:p-5 md:p-6 border border-white/[0.05] hover:border-white/20 transition-colors cursor-pointer"
     >
-      <div className="relative rounded-2xl overflow-hidden aspect-[4/5] bg-black mb-6">
+      <div className="relative rounded-xl sm:rounded-2xl overflow-hidden aspect-[4/5] bg-black mb-3 sm:mb-6 shrink-0">
         <img 
           src={product.image} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 pointer-events-none" 
@@ -121,22 +119,27 @@ export function ProductCard({ product }: { product: Product; key?: string }) {
         />
       </div>
 
-      <div className="text-center mb-8">
-        <h3 className="font-semibold text-xl text-white mb-2">{product.name}</h3>
-        <p className="text-neutral-400 text-sm mb-4 line-clamp-2">{product.description}</p>
-        <p className="text-white font-medium text-lg">₹{product.price}</p>
-      </div>
+      <div className="flex flex-1 flex-col text-center">
+        <h3 className="font-semibold text-sm sm:text-lg md:text-xl text-white mb-1.5 sm:mb-2 line-clamp-2 min-h-[2.5rem] sm:min-h-[3.5rem] leading-5 sm:leading-7">
+          {product.name}
+        </h3>
+        <p className="text-neutral-400 text-xs sm:text-sm mb-2 sm:mb-4 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem] leading-4 sm:leading-5">
+          {product.description}
+        </p>
+        <p className="text-white font-medium text-base sm:text-lg mb-3 sm:mb-6">₹{product.price}</p>
 
-      <button 
-        onClick={handleAdd}
-        className={cn(
-          "w-full py-3 rounded-full font-medium text-sm transition-all focus:scale-95 cursor-pointer",
-          added ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
-        )}
-      >
-        {added ? "Added to Bag" : "Add to Bag"}
-      </button>
-      {inCartCount > 0 && <p className="text-xs text-neutral-500 text-center mt-3">{inCartCount} in your bag.</p>}
+        <div className="mt-auto">
+          <button 
+            onClick={handleAdd}
+            className={cn(
+              "w-full py-2.5 sm:py-3 rounded-full font-medium text-xs sm:text-sm transition-all focus:scale-95 cursor-pointer",
+              added ? "bg-white text-black" : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
+            )}
+          >
+            {added ? "Added to Bag" : "Add to Bag"}
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 }

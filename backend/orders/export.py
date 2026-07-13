@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from .models import Order
 from .serializers import resolve_order_customer_name
-from .utils import get_order_contact_email
+from .utils import format_shipping_phone, get_order_contact_email
 
 
 def _format_datetime(value: datetime | None) -> str:
@@ -50,7 +50,7 @@ def build_orders_export_csv(orders: list[Order]) -> bytes:
                 _format_datetime(order.created_at),
                 resolve_order_customer_name(order),
                 get_order_contact_email(order) or '',
-                _address_field(order, 'phone'),
+                format_shipping_phone(order.shipping_address),
                 _address_field(order, 'city'),
                 _address_field(order, 'state'),
                 _address_field(order, 'address'),
@@ -73,7 +73,7 @@ def build_order_detail_export_csv(order: Order) -> bytes:
     writer.writerow(['Order Date', _format_datetime(order.created_at)])
     writer.writerow(['Customer', resolve_order_customer_name(order)])
     writer.writerow(['Email', get_order_contact_email(order) or ''])
-    writer.writerow(['Phone', _address_field(order, 'phone')])
+    writer.writerow(['Phone', format_shipping_phone(order.shipping_address)])
     writer.writerow(['Payment Status', order.payment_status])
     writer.writerow(['Fulfillment Status', order.status])
     writer.writerow(['Total (INR)', order.total_amount])

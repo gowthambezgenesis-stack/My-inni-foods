@@ -3,14 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useCart } from '../hooks/useCart';
 import { NavLink } from 'react-router-dom';
 import { Minus, Plus, Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
-import { cn } from '../lib/utils';
 import { getCartLineKey } from '../lib/productVariants';
 
 export function Cart() {
   const { cartItems, updateQuantity, removeFromCart } = useCart();
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
-  const shipping = subtotal >= 950 ? 0 : 160;
+  const shipping = 0;
   const total = subtotal + (cartItems.length > 0 ? shipping : 0);
   const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -157,27 +156,15 @@ export function Cart() {
 
                 <div className="space-y-4 pb-6 border-b border-white/[0.06]">
                   <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-500">Shipping</span>
+                    <span className="font-medium tabular-nums text-emerald-400">Free</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
                     <span className="text-neutral-500">Subtotal</span>
                     <span className="text-white font-medium tabular-nums">
                       ₹{subtotal.toLocaleString('en-IN')}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-neutral-500">Shipping</span>
-                    <span
-                      className={cn(
-                        'font-medium tabular-nums',
-                        shipping === 0 ? 'text-emerald-400' : 'text-white',
-                      )}
-                    >
-                      {shipping === 0 ? 'Free' : `₹${shipping}`}
-                    </span>
-                  </div>
-                  {shipping > 0 && subtotal < 950 && (
-                    <p className="text-[11px] text-neutral-600 leading-relaxed pt-1">
-                      Free shipping on orders of ₹950 or more.
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex justify-between items-baseline py-6">

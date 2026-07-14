@@ -367,11 +367,7 @@ export function TrackOrder() {
                 className="bg-[#111112] border border-white/[0.08] rounded-[2rem] p-6 md:p-8"
               >
                 <div className="mb-6">
-                  <p className="text-sm uppercase tracking-[0.2em] text-neutral-500 mb-2">Saved locally</p>
                   <h2 className="text-2xl md:text-3xl font-semibold tracking-tighter">Recent orders</h2>
-                  <p className="text-sm text-neutral-500 mt-2">
-                    Orders stay here until you delete them.
-                  </p>
                 </div>
 
                 <ul className="space-y-3">

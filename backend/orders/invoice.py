@@ -11,7 +11,7 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.pdfmetrics import registerFontFamily
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from .models import Order
 from .serializers import resolve_order_customer_name
@@ -19,6 +19,7 @@ from .serializers import resolve_order_customer_name
 INVOICE_TERMS = 'Due on Receipt'
 PLACE_OF_SUPPLY = 'Karnataka(29)'
 BLANK_ITEM_ROWS = 4
+SIGNATURE_IMAGE_PATH = Path(__file__).resolve().parent / 'assets' / 'authorized-signature.png'
 
 INVOICE_FONT_REGULAR = 'Helvetica'
 INVOICE_FONT_BOLD = 'Helvetica-Bold'
@@ -164,6 +165,15 @@ def _balance_due_display(order: Order, total: Decimal) -> str:
     return _inr(total)
 
 
+def _shipping_amount(order: Order) -> Decimal:
+    items_total = sum(
+        Decimal(item.price_at_time) * item.quantity
+        for item in order.items.all()
+    )
+    shipping = _quantize(Decimal(order.total_amount) - items_total)
+    return shipping if shipping > 0 else Decimal('0.00')
+
+
 def _invoice_lines(order: Order) -> list[dict]:
     lines: list[dict] = []
     for item in order.items.all():
@@ -182,27 +192,16 @@ def _invoice_lines(order: Order) -> list[dict]:
                 'amount': amount,
             },
         )
-
-    items_total = sum(Decimal(item.price_at_time) * item.quantity for item in order.items.all())
-    shipping = _quantize(Decimal(order.total_amount) - items_total)
-    if shipping > 0:
-        lines.append(
-            {
-                'description': 'Shipping Charges',
-                'qty': Decimal('1'),
-                'unit': 'pcs',
-                'rate': shipping,
-                'amount': shipping,
-            },
-        )
-
     return lines
 
 
 def _totals_from_lines(lines: list[dict], order: Order) -> dict:
     sub_total = _quantize(sum(line['amount'] for line in lines))
+    shipping = _shipping_amount(order)
     total = _quantize(Decimal(order.total_amount))
     return {
+        'shipping': shipping,
+        'shipping_display': 'Free' if shipping <= 0 else _inr(shipping),
         'sub_total': sub_total,
         'total': total,
         'balance_due': _balance_due_display(order, total),
@@ -433,6 +432,7 @@ def build_order_invoice_pdf(order: Order) -> bytes:
 
     summary_table = Table(
         [
+            ['Shipping', totals['shipping_display']],
             ['Sub Total', _money(totals['sub_total'])],
         ],
         colWidths=[36 * mm, 26 * mm],
@@ -486,18 +486,42 @@ def build_order_invoice_pdf(order: Order) -> bytes:
         ]),
     )
 
+    signature_content: list = []
+    if SIGNATURE_IMAGE_PATH.exists():
+        signature_image = Image(
+            str(SIGNATURE_IMAGE_PATH),
+            width=42 * mm,
+            height=14 * mm,
+            kind='proportional',
+        )
+        signature_content.append(signature_image)
+    signature_content.append(_p('Authorized Signature', muted))
+
+    signature_inner = Table([[item] for item in signature_content], colWidths=[54 * mm])
+    signature_inner.setStyle(
+        TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+        ]),
+    )
+
     signature_box = Table(
-        [[_p('<br/><br/>Authorized Signature', muted)]],
+        [[signature_inner]],
         colWidths=[62 * mm],
-        rowHeights=[22 * mm],
+        rowHeights=[26 * mm],
     )
     signature_box.setStyle(
         TableStyle([
             ('BOX', (0, 0), (-1, -1), 0.5, GRID_COLOR),
-            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
             ('LEFTPADDING', (0, 0), (-1, -1), 4),
             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]),
     )

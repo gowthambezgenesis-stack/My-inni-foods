@@ -54,7 +54,7 @@ export function Checkout() {
   const phoneError = getPhoneError(shippingInfo.phone, phoneTouched);
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
-  const shipping = subtotal >= 950 ? 0 : 160;
+  const shipping = 0;
   const total = subtotal + (cartItems.length > 0 ? shipping : 0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,12 +303,12 @@ export function Checkout() {
 
             <div className="border-t border-white/10 pt-4 space-y-3 mb-6 text-sm text-neutral-400">
               <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>₹{subtotal}</span>
+                <span>Shipping</span>
+                <span>Free</span>
               </div>
               <div className="flex justify-between">
-                <span>Shipping</span>
-                <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
+                <span>Subtotal</span>
+                <span>₹{subtotal}</span>
               </div>
             </div>
 

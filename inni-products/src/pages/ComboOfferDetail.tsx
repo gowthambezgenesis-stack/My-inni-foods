@@ -130,11 +130,6 @@ export function ComboOfferDetail() {
                       Offer Price
                     </p>
                     <div className="flex items-baseline gap-3 flex-wrap">
-                      {hasSavings && (
-                        <span className="text-xl md:text-2xl text-neutral-600 line-through decoration-neutral-600/80">
-                          ₹{totalItemValue.toLocaleString('en-IN')}
-                        </span>
-                      )}
                       <span className="text-4xl md:text-5xl font-semibold tracking-tight text-white">
                         ₹{offer.offerPrice.toLocaleString('en-IN')}
                       </span>

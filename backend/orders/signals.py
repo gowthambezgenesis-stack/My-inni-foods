@@ -29,7 +29,8 @@ def cache_order_payment_status(sender, instance: Order, **kwargs) -> None:
 @receiver(post_save, sender=Order)
 def notify_admins_on_new_paid_order(sender, instance: Order, **kwargs) -> None:
     """
-    Email admins and send WhatsApp invoice to customer when an order is newly marked as paid.
+Email admins and send WhatsApp invoice/email to customer when an order is newly marked as paid.
+    Runs asynchronously so payment/order updates are never blocked by SMTP.
     Supports both logged-in users and guest checkouts seamlessly.
     """
     # 1. Exit immediately if the order isn't paid
@@ -81,6 +82,20 @@ def notify_admins_on_new_paid_order(sender, instance: Order, **kwargs) -> None:
             
     except Exception:
         logger.exception('Failed to send WhatsApp notification for %s', instance.order_number)
+    try:
+        from notifications.tasks import enqueue_customer_order_success_email
+
+        enqueue_customer_order_success_email(instance.pk)
+        logger.info(
+            'Queued customer order confirmation for %s',
+            instance.order_number,
+        )
+    except Exception:
+        logger.exception(
+            'Failed to queue customer order confirmation for %s',
+            instance.order_number,
+        )
+
     try:
         from notifications.whatsapp_utils import send_whatsapp_for_paid_order
 

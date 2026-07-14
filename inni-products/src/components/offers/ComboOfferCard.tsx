@@ -93,16 +93,9 @@ export function ComboOfferCard({ offer, index }: ComboOfferCardProps) {
               <span className="text-[10px] sm:text-xs text-neutral-400 font-light">{offer.totalWeight}</span>
             </div>
             <div className="flex items-end justify-between gap-2 sm:gap-3">
-              <div className="flex items-baseline gap-1.5 sm:gap-2.5 flex-wrap">
-                {hasSavings && (
-                  <span className="text-[11px] sm:text-sm text-neutral-600 line-through decoration-neutral-600">
-                    ₹{totalItemValue.toLocaleString('en-IN')}
-                  </span>
-                )}
-                <span className="text-lg sm:text-2xl font-semibold tracking-tight text-white">
-                  ₹{offer.offerPrice.toLocaleString('en-IN')}
-                </span>
-              </div>
+              <span className="text-lg sm:text-2xl font-semibold tracking-tight text-white">
+                ₹{offer.offerPrice.toLocaleString('en-IN')}
+              </span>
               {hasSavings && (
                 <span className="text-[8px] sm:text-[9px] font-bold tracking-widest uppercase text-[#E33E2B] bg-[#E33E2B]/10 border border-[#E33E2B]/20 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full">
                   Save {savingsPercent}%

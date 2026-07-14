@@ -38,6 +38,7 @@ export function OrderTable({ orders }: OrderTableProps) {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Asia/Kolkata',
     });
 
   const openOrder = (orderId: string) => {

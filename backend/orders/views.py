@@ -129,6 +129,16 @@ class OrderCreateView(APIView):
         order = serializer.save()
         if order.payment_method == Order.PaymentMethod.COD:
             logger.info('Created COD order %s (payment pending)', order.order_number)
+            try:
+                from notifications.tasks import enqueue_customer_order_success_email
+
+                enqueue_customer_order_success_email(order.pk)
+                logger.info('Queued customer order confirmation for COD %s', order.order_number)
+            except Exception:
+                logger.exception(
+                    'Failed to queue customer order confirmation for COD %s',
+                    order.order_number,
+                )
         else:
             logger.info('Created order %s with Razorpay id %s', order.order_number, order.razorpay_order_id)
 

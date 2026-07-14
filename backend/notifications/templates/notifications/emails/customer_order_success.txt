@@ -1,0 +1,37 @@
+{{ site_name }} — Order confirmed
+
+ORDER NUMBER
+{{ order_number }}
+
+Hi{% if customer_name %} {{ customer_name }}{% endif %},
+
+{{ confirmation_message }}
+
+Order details
+-------------
+Placed on: {{ order_date|date:"d M Y, g:i A" }}
+Payment: {{ payment_label }}
+Shipping: {{ shipping_display }}
+Status: {{ status_label }}
+Total: Rs. {{ total_amount }}
+
+Items
+-----
+{% for item in items %}
+- {{ item.product_name }}{% if item.weight %} ({{ item.weight }}){% endif %} x{{ item.quantity }} — Rs. {{ item.line_total }}
+{% endfor %}
+Shipping: {{ shipping_display }}
+Order total: Rs. {{ total_amount }}
+
+{% if shipping_lines %}
+Shipping address
+----------------
+{% for line in shipping_lines %}
+{{ line }}
+{% endfor %}
+{% endif %}
+
+Track your order:
+{{ track_url }}
+
+Keep your order number {{ order_number }} handy for tracking and support.

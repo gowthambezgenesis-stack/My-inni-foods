@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { CheckCircle, Loader2, PackageSearch } from 'lucide-react';
 import { TrackingTimeline } from '../components/tracking/TrackingTimeline';
 import { useRealtimeOrderTracking } from '../hooks/useRealtimeOrderTracking';
+import { saveRecentOrder } from '../lib/recentOrders';
 import { PaymentRecord } from '../types/payment';
 import { TrackOrderPayload } from '../types';
 
@@ -50,6 +51,12 @@ export function CheckoutSuccess() {
     enabled: Boolean(trackPayload),
   });
 
+  useEffect(() => {
+    if (orderNumber && mobile) {
+      saveRecentOrder(orderNumber, mobile);
+    }
+  }, [orderNumber, mobile]);
+
   const trackOrderPath = orderNumber
     ? `/track-order?order=${encodeURIComponent(orderNumber)}${email ? `&email=${encodeURIComponent(email)}` : ''}`
     : '/track-order';
@@ -81,8 +88,8 @@ export function CheckoutSuccess() {
         className="text-neutral-400 text-lg max-w-md mx-auto mb-10 font-light"
       >
         {isCod
-          ? 'Your order has been confirmed with cash on delivery. Pay when your premium spices arrive.'
-          : 'Your premium spices are being prepared. We will send you an email with your shipping confirmation shortly.'}
+          ? 'Your order has been confirmed with cash on delivery. A confirmation email with your order number and details has been sent. Pay when your spices arrive.'
+          : 'Your premium spices are being prepared. A confirmation email with your order number and details has been sent.'}
       </motion.p>
 
       {trackPayload && (

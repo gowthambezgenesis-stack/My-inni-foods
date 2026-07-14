@@ -27,7 +27,7 @@ def cache_order_payment_status(sender, instance: Order, **kwargs) -> None:
 @receiver(post_save, sender=Order)
 def notify_admins_on_new_paid_order(sender, instance: Order, **kwargs) -> None:
     """
-    Email super_admin and order_manager when an order is newly marked as paid.
+    Email admins and the customer when an order is newly marked as paid.
     Runs asynchronously so payment/order updates are never blocked by SMTP.
     """
     if instance.payment_status != Order.PaymentStatus.PAID:
@@ -48,6 +48,20 @@ def notify_admins_on_new_paid_order(sender, instance: Order, **kwargs) -> None:
     except Exception:
         logger.exception(
             'Failed to queue new order notification for %s',
+            instance.order_number,
+        )
+
+    try:
+        from notifications.tasks import enqueue_customer_order_success_email
+
+        enqueue_customer_order_success_email(instance.pk)
+        logger.info(
+            'Queued customer order confirmation for %s',
+            instance.order_number,
+        )
+    except Exception:
+        logger.exception(
+            'Failed to queue customer order confirmation for %s',
             instance.order_number,
         )
 

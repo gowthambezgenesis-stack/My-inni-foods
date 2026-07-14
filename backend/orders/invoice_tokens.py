@@ -34,9 +34,18 @@ def build_signed_invoice_url(order: Order) -> str | None:
     return f'{base}/api/orders/invoice/{order.order_number}/{token}/'
 
 
-def build_track_order_url(order: Order, *, phone: str | None = None) -> str:
+def build_track_order_url(
+    order: Order,
+    *,
+    phone: str | None = None,
+    email: str | None = None,
+) -> str:
+    from urllib.parse import urlencode
+
     base = settings.FRONTEND_BASE_URL.rstrip('/')
-    params = f'order={order.order_number}'
+    params: dict[str, str] = {'order': order.order_number}
     if phone:
-        params += f'&mobile={phone}'
-    return f'{base}/track-order?{params}'
+        params['mobile'] = phone
+    elif email:
+        params['email'] = email
+    return f'{base}/track-order?{urlencode(params)}'

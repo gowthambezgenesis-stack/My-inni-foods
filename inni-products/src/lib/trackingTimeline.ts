@@ -2,7 +2,12 @@ import { TrackingHistoryEvent } from '../types';
 
 export function formatTimelineTimestamp(value: string) {
   const date = new Date(value);
-  const day = date.getDate();
+  const day = Number(
+    new Intl.DateTimeFormat('en-IN', {
+      day: 'numeric',
+      timeZone: 'Asia/Kolkata',
+    }).format(date),
+  );
   const suffix =
     day % 10 === 1 && day !== 11
       ? 'st'
@@ -17,6 +22,7 @@ export function formatTimelineTimestamp(value: string) {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
+      timeZone: 'Asia/Kolkata',
     })
     .replace(/^\d+/, `${day}${suffix}`);
 

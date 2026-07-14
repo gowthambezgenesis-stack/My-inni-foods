@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order confirmed — {{ order_number }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#18181b;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f4f5;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e4e4e7;">
+          <tr>
+            <td style="background:#111111;padding:28px;">
+              <p style="margin:0;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#a1a1aa;">{{ site_name }}</p>
+              <p style="margin:14px 0 6px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#a1a1aa;">Order number</p>
+              <h1 style="margin:0;font-size:28px;line-height:1.25;color:#ffffff;font-family:ui-monospace,Consolas,monospace;letter-spacing:0.02em;">
+                {{ order_number }}
+              </h1>
+              <p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#d4d4d8;">
+                Thank you{% if customer_name %}, {{ customer_name }}{% endif %} — your order is confirmed.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;">
+              <p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#52525b;">
+                {{ confirmation_message }}
+              </p>
+
+              <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#71717a;font-weight:bold;">
+                Order details
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:14px 16px;background:#fafafa;font-size:12px;font-weight:bold;color:#71717a;width:40%;">Placed on</td>
+                  <td style="padding:14px 16px;font-size:14px;color:#18181b;">{{ order_date|date:"d M Y, g:i A" }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 16px;background:#fafafa;font-size:12px;font-weight:bold;color:#71717a;">Payment</td>
+                  <td style="padding:14px 16px;font-size:14px;color:#18181b;">{{ payment_label }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 16px;background:#fafafa;font-size:12px;font-weight:bold;color:#71717a;">Shipping</td>
+                  <td style="padding:14px 16px;font-size:14px;{% if shipping_is_free %}color:#16a34a;font-weight:bold;{% else %}color:#18181b;{% endif %}">{{ shipping_display }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 16px;background:#fafafa;font-size:12px;font-weight:bold;color:#71717a;">Status</td>
+                  <td style="padding:14px 16px;font-size:14px;color:#18181b;">{{ status_label }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:14px 16px;background:#fafafa;font-size:12px;font-weight:bold;color:#71717a;">Total</td>
+                  <td style="padding:14px 16px;font-size:16px;font-weight:bold;color:#18181b;">₹{{ total_amount }}</td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#71717a;font-weight:bold;">
+                Items
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:12px 16px;background:#fafafa;font-size:11px;font-weight:bold;color:#71717a;">Product</td>
+                  <td style="padding:12px 16px;background:#fafafa;font-size:11px;font-weight:bold;color:#71717a;text-align:center;">Qty</td>
+                  <td style="padding:12px 16px;background:#fafafa;font-size:11px;font-weight:bold;color:#71717a;text-align:right;">Amount</td>
+                </tr>
+                {% for item in items %}
+                <tr>
+                  <td style="padding:12px 16px;font-size:14px;color:#18181b;border-top:1px solid #f4f4f5;">
+                    {{ item.product_name }}{% if item.weight %} <span style="color:#71717a;">({{ item.weight }})</span>{% endif %}
+                  </td>
+                  <td style="padding:12px 16px;font-size:14px;color:#18181b;text-align:center;border-top:1px solid #f4f4f5;">{{ item.quantity }}</td>
+                  <td style="padding:12px 16px;font-size:14px;color:#18181b;text-align:right;border-top:1px solid #f4f4f5;">₹{{ item.line_total }}</td>
+                </tr>
+                {% endfor %}
+                <tr>
+                  <td colspan="2" style="padding:12px 16px;font-size:14px;color:#52525b;border-top:1px solid #e4e4e7;">Shipping</td>
+                  <td style="padding:12px 16px;font-size:14px;text-align:right;border-top:1px solid #e4e4e7;{% if shipping_is_free %}color:#16a34a;font-weight:bold;{% else %}color:#18181b;{% endif %}">
+                    {{ shipping_display }}
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding:14px 16px;font-size:14px;font-weight:bold;color:#18181b;border-top:1px solid #e4e4e7;background:#fafafa;">Order total</td>
+                  <td style="padding:14px 16px;font-size:14px;font-weight:bold;color:#18181b;text-align:right;border-top:1px solid #e4e4e7;background:#fafafa;">₹{{ total_amount }}</td>
+                </tr>
+              </table>
+
+              {% if shipping_lines %}
+              <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#71717a;font-weight:bold;">
+                Shipping address
+              </p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e4e4e7;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:16px;font-size:14px;line-height:1.6;color:#18181b;">
+                    {% for line in shipping_lines %}
+                      {{ line }}{% if not forloop.last %}<br />{% endif %}
+                    {% endfor %}
+                  </td>
+                </tr>
+              </table>
+              {% endif %}
+
+              <table role="presentation" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="border-radius:999px;background:#111111;">
+                    <a href="{{ track_url }}" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;">
+                      Track your order
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 28px;background:#fafafa;border-top:1px solid #e4e4e7;">
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#a1a1aa;">
+                Keep your order number <strong style="color:#52525b;">{{ order_number }}</strong> handy for tracking and support.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

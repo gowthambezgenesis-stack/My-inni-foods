@@ -13,7 +13,11 @@ export const ADMIN_FULFILLMENT_STATUSES: OrderStatus[] = [
   'delivered',
 ];
 
-export const ORDER_STATUS_FILTER_OPTIONS: OrderStatus[] = ADMIN_FULFILLMENT_STATUSES;
+export const ORDER_STATUS_FILTER_OPTIONS: OrderStatus[] = [
+  ...ADMIN_FULFILLMENT_STATUSES,
+  'cancelled',
+];
+
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Pending',
@@ -23,6 +27,22 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   delivered: 'Delivered',
   cancelled: 'Cancelled',
 };
+
+/** Matches backend All Orders scope (not shown in Recent Orders). */
+export const RECENT_DELIVERED_MS = 24 * 60 * 60 * 1000;
+
+export function isAllOrdersLockedOrder(order: {
+  status: string;
+  updated_at: string;
+}): boolean {
+  if (order.status === 'cancelled') {
+    return true;
+  }
+  if (order.status === 'delivered') {
+    return Date.now() - new Date(order.updated_at).getTime() >= RECENT_DELIVERED_MS;
+  }
+  return false;
+}
 
 export function formatOrderStatusLabel(status: string | null | undefined): string {
   if (!status) return 'Pending';

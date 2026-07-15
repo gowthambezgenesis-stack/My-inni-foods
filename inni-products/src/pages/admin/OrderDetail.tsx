@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -9,13 +9,16 @@ import {
   MapPin,
   Package,
   User,
+  XCircle,
 } from 'lucide-react';
 import { StatusUpdater } from '../../components/admin/StatusUpdater';
 import { downloadOrderDetailExport } from '../../features/orders/orderApi';
 import { useOrderStore } from '../../features/orders/orderStore';
-import { formatOrderStatusLabel } from '../../lib/orderStatuses';
+import { canManageOrders } from '../../lib/adminRoles';
+import { formatOrderStatusLabel, isAllOrdersLockedOrder } from '../../lib/orderStatuses';
 import { useAdminThemeClasses } from '../../lib/adminTheme';
 import { formatShippingPhone } from '../../lib/phone';
+import { useAuthStore } from '../../store/authStore';
 import { cn } from '../../lib/utils';
 
 const statusBadgeColors: Record<string, string> = {
@@ -78,14 +81,29 @@ function SidebarCard({
 
 export function OrderDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { selectedOrder, loading, error, loadOrder, updateStatus, clearSelected } = useOrderStore();
+  const { role, isSuperAdmin } = useAuthStore();
   const [isExporting, setIsExporting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const t = useAdminThemeClasses();
 
   useEffect(() => {
     if (id) loadOrder(id);
     return () => clearSelected();
   }, [id, loadOrder, clearSelected]);
+
+  useEffect(() => {
+    if (!cancelConfirmOpen) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isCancelling) {
+        setCancelConfirmOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [cancelConfirmOpen, isCancelling]);
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleString('en-IN', {
@@ -108,6 +126,22 @@ export function OrderDetail() {
       toast.error(message);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleConfirmCancelOrder = async () => {
+    if (!selectedOrder) return;
+
+    setIsCancelling(true);
+    try {
+      await updateStatus(selectedOrder.id, 'cancelled');
+      setCancelConfirmOpen(false);
+      navigate('/admin/orders/all');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to cancel order.';
+      toast.error(message);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -147,8 +181,14 @@ export function OrderDetail() {
     statusBadgeColors[selectedOrder.status] ?? statusBadgeColors.pending;
   const paymentBadge =
     paymentBadgeColors[selectedOrder.payment_status] ?? paymentBadgeColors.pending;
+  const statusReadOnly = isAllOrdersLockedOrder(selectedOrder);
+  const canCancel =
+    !statusReadOnly &&
+    selectedOrder.status !== 'cancelled' &&
+    (isSuperAdmin || canManageOrders(role));
 
   return (
+    <>
     <div className="space-y-6">
       <Link
         to="/admin/orders"
@@ -215,6 +255,7 @@ export function OrderDetail() {
                 orderId={selectedOrder.id}
                 currentStatus={selectedOrder.status}
                 onUpdate={updateStatus}
+                readOnly={statusReadOnly}
               />
             </div>
 
@@ -230,6 +271,21 @@ export function OrderDetail() {
               <Download size={16} />
               {isExporting ? 'Downloading...' : 'Download Excel'}
             </button>
+
+            {canCancel && (
+              <button
+                type="button"
+                onClick={() => setCancelConfirmOpen(true)}
+                disabled={isCancelling}
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-medium transition-all duration-200 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer',
+                  t.secondaryBtn,
+                )}
+              >
+                <XCircle size={16} />
+                Cancel Order
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -391,6 +447,68 @@ export function OrderDetail() {
         </div>
       </div>
     </div>
+
+    {cancelConfirmOpen && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <button
+          type="button"
+          aria-label="Close cancel confirmation"
+          onClick={() => !isCancelling && setCancelConfirmOpen(false)}
+          className={cn('absolute inset-0 cursor-pointer', t.overlay)}
+        />
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-order-title"
+          className={cn(
+            'relative z-10 w-full max-w-md rounded-2xl border p-6 shadow-2xl',
+            t.dropdown,
+          )}
+        >
+          <div className="flex items-start gap-3 mb-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+              <XCircle size={18} />
+            </div>
+            <div>
+              <h2 id="cancel-order-title" className={cn('text-base font-semibold', t.heading)}>
+                Cancel this order?
+              </h2>
+              <p className={cn('mt-1 text-sm', t.body)}>
+                Order{' '}
+                <span className={cn('font-mono font-medium', t.heading)}>
+                  {selectedOrder.order_number}
+                </span>{' '}
+                will be marked as Cancelled and moved to Order History. The order will not be
+                deleted.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setCancelConfirmOpen(false)}
+              disabled={isCancelling}
+              className={cn(
+                'flex-1 py-2.5 rounded-full text-sm font-medium border transition-colors disabled:opacity-60 cursor-pointer',
+                t.cancelBtn,
+              )}
+            >
+              No, keep order
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmCancelOrder}
+              disabled={isCancelling}
+              className="flex-1 py-2.5 rounded-full text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isCancelling ? 'Cancelling...' : 'Yes, cancel order'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

@@ -1,0 +1,39 @@
+SECRET_KEY=8bi1vvgcf7jbdm@_#&#27si!5d0**2!$ck3y+7@j5%*0#7^@ck
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.6,192.168.140.128
+
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=innifoods
+DB_USER=postgres
+DB_PASSWORD=postgres123
+
+
+# Razorpay (get keys from https://dashboard.razorpay.com/app/keys)
+
+RAZORPAY_KEY_ID=rzp_test_T5l6vdL8mmif70
+RAZORPAY_KEY_SECRET=YQ68Qsyd559q0iIKAbVrRX5W
+RAZORPAY_WEBHOOK_SECRET=inniprojectwebhook@123
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://192.168.140.128:3000
+
+# SMTP — required for Super Admin OTP login (Gmail: use an App Password, not your normal password)
+# https://myaccount.google.com/apppasswords
+
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=gowthameswar88@gmail.com
+EMAIL_HOST_PASSWORD=zfjocuzmofqchzsp
+DEFAULT_FROM_EMAIL=gowthameswar88@gmail.com
+
+# Optional: print OTP emails to the console instead of sending (local dev only)
+# EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+
+# New order admin notifications
+ORDER_NOTIFICATIONS_ENABLED=True
+FRONTEND_BASE_URL=http://192.168.140.128:3000
+
+# OpenAPI / Swagger UI (enabled by default when DEBUG=True)
+SWAGGER_ENABLED=True

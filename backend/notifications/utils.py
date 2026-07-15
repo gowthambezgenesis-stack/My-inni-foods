@@ -53,7 +53,7 @@ def send_new_order_email(order: Order) -> bool:
 
     if not settings.EMAIL_CONFIGURED:
         logger.warning(
-            'SMTP not configured; cannot send new order email for %s',
+            'Email not configured; cannot send new order email for %s',
             order.order_number,
         )
         return False
@@ -200,7 +200,7 @@ def send_customer_order_success_email(order: Order) -> bool:
 
     if not settings.EMAIL_CONFIGURED:
         logger.warning(
-            'SMTP not configured; cannot send customer order email for %s',
+            'Email not configured; cannot send customer order email for %s',
             order.order_number,
         )
         return False

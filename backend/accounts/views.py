@@ -165,7 +165,7 @@ class SendAdminOtpView(APIView):
         _, plain_otp = AdminLoginOtp.create_for_email(email)
 
         if not settings.EMAIL_CONFIGURED:
-            logger.error('SMTP not configured: set EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in .env')
+            logger.error('Email not configured: set RESEND_API_KEY in .env')
             return Response(
                 {'error': 'We couldn’t send your verification code right now. Please try again in a moment.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -212,7 +212,7 @@ class ContactMessageView(APIView):
             )
 
         if not settings.EMAIL_CONFIGURED:
-            logger.error('SMTP not configured; cannot send contact form email')
+            logger.error('Email not configured; cannot send contact form email')
             return Response(
                 {'error': 'We couldn’t send your message right now. Please try again in a moment.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -272,7 +272,7 @@ class PartnerApplicationView(APIView):
             return _super_admin_email_unavailable_response()
 
         if not settings.EMAIL_CONFIGURED:
-            logger.error('SMTP not configured; cannot send partner application email')
+            logger.error('Email not configured; cannot send partner application email')
             return _super_admin_email_unavailable_response()
 
         partnership_label = dict(PARTNERSHIP_TYPE_CHOICES).get(

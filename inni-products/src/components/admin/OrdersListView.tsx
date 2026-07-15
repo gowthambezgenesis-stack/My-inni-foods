@@ -44,13 +44,16 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
   const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | ''>('');
-  const [filters, setFilters] = useState<FetchOrdersParams>({ recent: isRecent });
+  const [filters, setFilters] = useState<FetchOrdersParams>(
+    isRecent ? { recent: true } : { all: true },
+  );
   const [isExporting, setIsExporting] = useState(false);
 
   const { orders, loading, error, lastUpdated, refresh } = useRealtimeOrders({ filters });
 
   const buildFilters = (overrides: Partial<FetchOrdersParams> = {}): FetchOrdersParams => ({
     recent: isRecent ? true : undefined,
+    all: isRecent ? undefined : true,
     search: searchTerm || undefined,
     status: statusFilter || undefined,
     payment_status: paymentFilter || undefined,
@@ -67,6 +70,7 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
     setSearchTerm(query);
     setFilters({
       recent: isRecent ? true : undefined,
+      all: isRecent ? undefined : true,
       search: query,
     });
   }, [searchParams, isRecent]);
@@ -129,7 +133,7 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
             </Link>
           )}
           <h2 className={cn('text-3xl font-bold tracking-tight', t.heading)}>
-            {isRecent ? 'Orders' : 'All Orders'}
+            {isRecent ? 'Orders' : 'Order History'}
           </h2>
           <p className={cn('mt-1', t.body)}>
             {isRecent
@@ -142,7 +146,7 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
           {isRecent && (
             <Link to="/admin/orders/all" className={accentButtonClass}>
               <ListOrdered size={16} />
-              All Orders
+              Order History
             </Link>
           )}
           <button

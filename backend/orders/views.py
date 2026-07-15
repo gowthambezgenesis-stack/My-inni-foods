@@ -130,13 +130,19 @@ class OrderCreateView(APIView):
         if order.payment_method == Order.PaymentMethod.COD:
             logger.info('Created COD order %s (payment pending)', order.order_number)
             try:
-                from notifications.tasks import enqueue_customer_order_success_email
+                from notifications.tasks import (
+                    enqueue_customer_order_success_email,
+                    enqueue_new_order_email,
+                )
+
+                enqueue_new_order_email(order.pk)
+                logger.info('Queued admin new-order notification for COD %s', order.order_number)
 
                 enqueue_customer_order_success_email(order.pk)
                 logger.info('Queued customer order confirmation for COD %s', order.order_number)
             except Exception:
                 logger.exception(
-                    'Failed to queue customer order confirmation for COD %s',
+                    'Failed to queue order notifications for COD %s',
                     order.order_number,
                 )
         else:

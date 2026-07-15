@@ -328,10 +328,12 @@ class OrderStatusUpdateSerializer(serializers.ModelSerializer):
             Order.Status.SHIPPING,
             Order.Status.OUT_FOR_DELIVERY,
             Order.Status.DELIVERED,
+            Order.Status.CANCELLED,
         }
         if value not in allowed:
             raise serializers.ValidationError(
-                'Invalid status. Choose from: processing, shipping, out_for_delivery, delivered.',
+                'Invalid status. Choose from: processing, shipping, '
+                'out_for_delivery, delivered, cancelled.',
             )
         return value
 

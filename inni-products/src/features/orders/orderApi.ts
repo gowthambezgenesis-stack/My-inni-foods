@@ -15,6 +15,7 @@ export interface FetchOrdersParams {
   payment_status?: PaymentStatus;
   search?: string;
   recent?: boolean;
+  all?: boolean;
 }
 
 /** Normalize Django numeric IDs to strings for frontend consistency. */

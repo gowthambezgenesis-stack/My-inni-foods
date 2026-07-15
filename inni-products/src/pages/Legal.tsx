@@ -38,8 +38,8 @@ const sections = [
         <div>
           <dt className="text-neutral-500 text-xs uppercase tracking-[0.14em] mb-1">Customer Support Phone</dt>
           <dd>
-            <a href="tel:9480051410" className="hover:text-[#E33E2B] transition-colors">
-              9480051410
+            <a href="tel:+918197046698" className="hover:text-[#E33E2B] transition-colors">
+              +91 81970 46698
             </a>
           </dd>
         </div>
@@ -86,8 +86,8 @@ const sections = [
         </p>
         <p>
           <span className="font-medium text-neutral-900">Contact for Refunds:</span>{' '}
-          <a href="tel:9480051410" className="hover:text-[#E33E2B] transition-colors">
-            9480051410
+          <a href="tel:+918197046698" className="hover:text-[#E33E2B] transition-colors">
+            +91 81970 46698
           </a>
         </p>
       </div>

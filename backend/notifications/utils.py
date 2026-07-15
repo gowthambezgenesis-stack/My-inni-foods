@@ -75,6 +75,7 @@ def send_new_order_email(order: Order) -> bool:
     customer_name = resolve_order_customer_name(order)
     customer_email = get_order_contact_email(order) or '—'
     items_count = order.items.count()
+    is_cod = order.payment_method == Order.PaymentMethod.COD
 
     context = {
         'order': order,
@@ -86,6 +87,19 @@ def send_new_order_email(order: Order) -> bool:
         'order_date': order.created_at,
         'admin_order_url': build_admin_order_url(order),
         'site_name': 'inni Products',
+        'is_cod': is_cod,
+        'payment_method_label': order.get_payment_method_display(),
+        'payment_status_label': order.get_payment_status_display(),
+        'headline': (
+            'New Cash on Delivery order received'
+            if is_cod
+            else 'New paid order received'
+        ),
+        'intro': (
+            'A customer placed a Cash on Delivery order. Review the details below.'
+            if is_cod
+            else 'A customer has completed payment. Review the order details below.'
+        ),
     }
 
     subject = (

@@ -221,10 +221,10 @@ export function Contact() {
                 <div>
                   <p className={labelClassName}>Phone</p>
                   <a
-                    href="tel:+91809480051410"
+                    href="tel:+918197046698"
                     className="mt-2 inline-block text-sm sm:text-base font-medium tracking-tight text-white transition-colors duration-300 hover:text-[#E33E2B]"
                   >
-                    080 9480051410
+                    +91 81970 46698
                   </a>
                 </div>
 

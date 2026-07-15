@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { OrderStatus } from '../../types';
-import { ADMIN_FULFILLMENT_STATUSES, formatOrderStatusLabel, ORDER_STATUS_LABELS } from '../../lib/orderStatuses';
+import {
+  ADMIN_FULFILLMENT_STATUSES,
+  formatOrderStatusLabel,
+  ORDER_STATUS_LABELS,
+} from '../../lib/orderStatuses';
 import { canManageOrders } from '../../lib/adminRoles';
 import { useAdminThemeStore } from '../../store/adminThemeStore';
 import { useAuthStore } from '../../store/authStore';
@@ -11,7 +15,11 @@ import { cn } from '../../lib/utils';
 const ADMIN_STATUS_OPTIONS = ADMIN_FULFILLMENT_STATUSES;
 
 function resolveAdminSelectStatus(status: OrderStatus): OrderStatus {
-  return ADMIN_FULFILLMENT_STATUSES.includes(status) ? status : 'processing';
+  if (ADMIN_FULFILLMENT_STATUSES.includes(status)) {
+    return status;
+  }
+  // pending / unknown statuses stay selectable via the closest editable state
+  return 'processing';
 }
 
 function RadioIndicator({ selected, isDark }: { selected: boolean; isDark: boolean }) {
@@ -36,10 +44,17 @@ interface StatusUpdaterProps {
   orderId: string;
   currentStatus: OrderStatus;
   onUpdate: (id: string, status: OrderStatus) => Promise<void>;
+  /** When true, status cannot be changed (All Orders archived scope). */
+  readOnly?: boolean;
 }
 
 /** Custom pill dropdown to update order fulfillment status. */
-export function StatusUpdater({ orderId, currentStatus, onUpdate }: StatusUpdaterProps) {
+export function StatusUpdater({
+  orderId,
+  currentStatus,
+  onUpdate,
+  readOnly = false,
+}: StatusUpdaterProps) {
   const { role, isSuperAdmin } = useAuthStore();
   const [isUpdating, setIsUpdating] = useState(false);
   const [open, setOpen] = useState(false);
@@ -48,8 +63,9 @@ export function StatusUpdater({ orderId, currentStatus, onUpdate }: StatusUpdate
   const menuRef = useRef<HTMLDivElement>(null);
   const isDark = useAdminThemeStore((state) => state.theme) === 'dark';
 
-  const canUpdate = isSuperAdmin || canManageOrders(role);
+  const canUpdate = !readOnly && (isSuperAdmin || canManageOrders(role));
   const displayStatus = resolveAdminSelectStatus(currentStatus);
+  const buttonLabel = ORDER_STATUS_LABELS[currentStatus] ?? formatOrderStatusLabel(currentStatus);
 
   const updateMenuPosition = () => {
     if (!containerRef.current) return;
@@ -101,7 +117,9 @@ export function StatusUpdater({ orderId, currentStatus, onUpdate }: StatusUpdate
         className={cn(
           'inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium',
           isDark ? 'border-white/10 bg-neutral-900 text-white' : 'border-neutral-200 bg-white text-neutral-900',
+          readOnly && 'opacity-80',
         )}
+        title={readOnly ? 'Status is locked for Order History' : undefined}
       >
         {formatOrderStatusLabel(currentStatus)}
       </span>
@@ -132,7 +150,9 @@ export function StatusUpdater({ orderId, currentStatus, onUpdate }: StatusUpdate
       )}
     >
       {ADMIN_STATUS_OPTIONS.map((status) => {
-        const isSelected = status === displayStatus;
+        const isSelected =
+          status === currentStatus ||
+          (status === displayStatus && !ADMIN_FULFILLMENT_STATUSES.includes(currentStatus));
 
         return (
           <button
@@ -181,7 +201,7 @@ export function StatusUpdater({ orderId, currentStatus, onUpdate }: StatusUpdate
           open && (isDark ? 'border-white/25 ring-2 ring-white/5' : 'border-neutral-300 ring-2 ring-neutral-100'),
         )}
       >
-        <span className="truncate">{ORDER_STATUS_LABELS[displayStatus]}</span>
+        <span className="truncate">{buttonLabel}</span>
         {isUpdating ? (
           <Loader2 size={16} className="shrink-0 animate-spin text-orange-400" />
         ) : (

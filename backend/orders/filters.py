@@ -18,12 +18,24 @@ def parse_bool_query_param(value: str | None) -> bool:
 
 def apply_recent_orders_filter(queryset: QuerySet) -> QuerySet:
     """
-    Recent orders = not delivered, or delivered within the last day.
-    Uses updated_at as the delivery timestamp when status is delivered.
+    Recent orders = non-cancelled orders that are not delivered,
+    or delivered within the last day. Cancelled orders only appear in All Orders.
     """
     cutoff = timezone.now() - timedelta(days=RECENT_DELIVERED_DAYS)
-    return queryset.exclude(
+    return queryset.exclude(status=Order.Status.CANCELLED).exclude(
         Q(status=Order.Status.DELIVERED) & Q(updated_at__lt=cutoff),
+    )
+
+
+def apply_all_orders_filter(queryset: QuerySet) -> QuerySet:
+    """
+    All Orders = orders that are no longer recent:
+    cancelled, or delivered more than RECENT_DELIVERED_DAYS ago.
+    """
+    cutoff = timezone.now() - timedelta(days=RECENT_DELIVERED_DAYS)
+    return queryset.filter(
+        Q(status=Order.Status.CANCELLED)
+        | (Q(status=Order.Status.DELIVERED) & Q(updated_at__lt=cutoff)),
     )
 
 
@@ -39,6 +51,7 @@ def filter_order_list_queryset(user, query_params) -> QuerySet:
     payment_status = query_params.get('payment_status')
     search = query_params.get('search')
     recent = parse_bool_query_param(query_params.get('recent'))
+    all_orders = parse_bool_query_param(query_params.get('all'))
 
     if status_filter:
         qs = qs.filter(status=status_filter)
@@ -63,5 +76,7 @@ def filter_order_list_queryset(user, query_params) -> QuerySet:
         qs = qs.filter(search_q)
     if recent:
         qs = apply_recent_orders_filter(qs)
+    elif all_orders:
+        qs = apply_all_orders_filter(qs)
 
     return qs

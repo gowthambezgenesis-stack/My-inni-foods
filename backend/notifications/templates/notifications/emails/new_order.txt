@@ -1,8 +1,11 @@
-New paid order received — {{ site_name }}
+{{ headline }} — {{ site_name }}
+
+{{ intro }}
 
 Order Number: {{ order_number }}
 Customer: {{ customer_name }}
 Email: {{ customer_email }}
+Payment: {{ payment_method_label }} · {{ payment_status_label }}
 Items: {{ items_count }}
 Total: Rs. {{ total_amount }}
 Placed on: {{ order_date|date:"d M Y, g:i A" }}

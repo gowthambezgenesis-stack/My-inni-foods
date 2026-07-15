@@ -14,7 +14,7 @@ interface OrderTrackingDashboardProps {
 }
 
 const CUSTOMER_SUPPORT = {
-  phone: '080 9480051410',
+  phone: '+91 81970 46698',
   email: 'vasanthamachaih@oakroad.industries',
   addressLines: [
     'Oakroad Ventures private limited',

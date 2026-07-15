@@ -47,8 +47,8 @@ export function Footer() {
           <div className="md:border-l border-white/[0.08] md:pl-8 flex flex-col gap-4">
             <div>
               <span className="font-bold text-white block mb-1">Call :</span>
-              <a href="tel:+91809480051410" className="text-white font-normal hover:text-[#E33E2B] transition-colors duration-200 block">
-                080 9480051410
+              <a href="tel:+918197046698" className="text-white font-normal hover:text-[#E33E2B] transition-colors duration-200 block">
+                +91 81970 46698
               </a>
             </div>
             <div>

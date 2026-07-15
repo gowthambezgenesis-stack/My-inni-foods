@@ -165,7 +165,7 @@ class SendAdminOtpView(APIView):
         _, plain_otp = AdminLoginOtp.create_for_email(email)
 
         if not settings.EMAIL_CONFIGURED:
-            logger.error('Email not configured: set RESEND_API_KEY in .env')
+            logger.error('Email not configured: set SENDGRID_API_KEY in .env')
             return Response(
                 {'error': 'We couldn’t send your verification code right now. Please try again in a moment.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,

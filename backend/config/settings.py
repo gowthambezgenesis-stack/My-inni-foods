@@ -189,18 +189,19 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-# Email — Resend HTTP API (avoids SMTP blocks on Railway / PaaS)
-# https://resend.com/docs/send-with-django
-RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
+# Email — SendGrid HTTP API (avoids SMTP blocks on Railway / PaaS)
+# Domain auth uses CNAME records compatible with Wix DNS.
+# https://app.sendgrid.com/settings/api_keys
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '').strip()
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
-    'notifications.resend_backend.EmailBackend',
+    'notifications.sendgrid_backend.EmailBackend',
 )
 DEFAULT_FROM_EMAIL = (
     os.getenv('DEFAULT_FROM_EMAIL', '').strip()
-    or 'INNI Foods <onboarding@resend.dev>'
+    or 'INNI Foods <noreply@innifoods.com>'
 )
-EMAIL_CONFIGURED = bool(RESEND_API_KEY) or EMAIL_BACKEND.endswith(
+EMAIL_CONFIGURED = bool(SENDGRID_API_KEY) or EMAIL_BACKEND.endswith(
     ('console.EmailBackend', 'locmem.EmailBackend'),
 )
 EMAIL_SUBJECT_PREFIX = os.getenv('EMAIL_SUBJECT_PREFIX', '[inni] ')

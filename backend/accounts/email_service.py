@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def send_admin_otp_email(email: str, otp: str) -> None:
-    """Send 6-digit OTP to a registered admin email via Resend HTTP API."""
+    """Send 6-digit OTP to a registered admin email via SendGrid HTTP API."""
     subject = f'{settings.EMAIL_SUBJECT_PREFIX}Your inni admin login code'
     ttl = settings.ADMIN_OTP_TTL_MINUTES
 

@@ -189,25 +189,35 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-# SMTP — admin OTP emails
+# Email — SendGrid HTTP API (avoids SMTP blocks on Railway / PaaS)
+# Domain auth uses CNAME records compatible with Wix DNS.
+# https://app.sendgrid.com/settings/api_keys
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '').strip()
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
-    'django.core.mail.backends.smtp.EmailBackend',
+    'notifications.sendgrid_backend.EmailBackend',
 )
+DEFAULT_FROM_EMAIL = (
+    os.getenv('DEFAULT_FROM_EMAIL', '').strip()
+    or 'INNI Foods <noreply@innifoods.com>'
+)
+EMAIL_CONFIGURED = bool(SENDGRID_API_KEY) or EMAIL_BACKEND.endswith(
+    ('console.EmailBackend', 'locmem.EmailBackend'),
+)
+EMAIL_SUBJECT_PREFIX = os.getenv('EMAIL_SUBJECT_PREFIX', '[inni] ')
+ADMIN_OTP_TTL_MINUTES = int(os.getenv('ADMIN_OTP_TTL_MINUTES', '5'))
+
+# Legacy SMTP settings kept only if EMAIL_BACKEND is overridden to smtp.EmailBackend
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = env_bool('EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '').strip()
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').strip()
-# Gmail (and most SMTP providers) require FROM to match the authenticated account.
-DEFAULT_FROM_EMAIL = (
-    os.getenv('DEFAULT_FROM_EMAIL', '').strip()
-    or EMAIL_HOST_USER
-    or 'noreply@inni.com'
-)
-EMAIL_CONFIGURED = bool(EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
-EMAIL_SUBJECT_PREFIX = os.getenv('EMAIL_SUBJECT_PREFIX', '[inni] ')
-ADMIN_OTP_TTL_MINUTES = int(os.getenv('ADMIN_OTP_TTL_MINUTES', '5'))
+if EMAIL_BACKEND.endswith('smtp.EmailBackend') and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_CONFIGURED = True
+    if not os.getenv('DEFAULT_FROM_EMAIL', '').strip():
+        DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or DEFAULT_FROM_EMAIL
+
 
 # New order email notifications (super_admin + order_manager)
 ORDER_NOTIFICATIONS_ENABLED = env_bool('ORDER_NOTIFICATIONS_ENABLED', default=True)

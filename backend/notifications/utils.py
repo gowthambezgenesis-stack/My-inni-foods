@@ -38,7 +38,20 @@ def get_new_order_notification_recipients() -> list[str]:
 
 
 def build_admin_order_url(order: Order) -> str:
-    base_url = getattr(settings, 'ADMIN_PORTAL_BASE_URL', settings.FRONTEND_BASE_URL).rstrip('/')
+    from config.public_urls import normalize_public_base_url
+
+    candidates = [
+        getattr(settings, 'ADMIN_PORTAL_BASE_URL', ''),
+        getattr(settings, 'FRONTEND_BASE_URL', ''),
+        'https://www.innifoods.com',
+    ]
+    base_url = ''
+    for candidate in candidates:
+        base_url = normalize_public_base_url(candidate)
+        if base_url:
+            break
+    if not base_url:
+        base_url = 'https://www.innifoods.com'
     return f'{base_url}/admin/orders/{order.pk}'
 
 

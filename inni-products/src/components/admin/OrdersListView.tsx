@@ -22,7 +22,7 @@ const accentButtonClass =
   'inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors cursor-pointer';
 
 const STATUS_FILTER_OPTIONS = [
-  { value: '', label: 'All Statuses' },
+  { value: '', label: 'All Status' },
   ...ORDER_STATUS_FILTER_OPTIONS.map((status) => ({
     value: status,
     label: formatOrderStatusLabel(status),
@@ -190,7 +190,7 @@ export function OrdersListView({ mode }: OrdersListViewProps) {
             value={statusFilter}
             options={STATUS_FILTER_OPTIONS}
             onChange={(value) => handleFilterChange('status', value)}
-            placeholder="All Statuses"
+            placeholder="All Status"
             ariaLabel="Filter by order status"
           />
           <AdminPillDropdown

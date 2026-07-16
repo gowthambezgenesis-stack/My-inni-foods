@@ -42,7 +42,9 @@ def build_track_order_url(
 ) -> str:
     from urllib.parse import urlencode
 
-    base = settings.FRONTEND_BASE_URL.rstrip('/')
+    from config.public_urls import normalize_public_base_url
+
+    base = normalize_public_base_url(settings.FRONTEND_BASE_URL) or 'https://www.innifoods.com'
     params: dict[str, str] = {'order': order.order_number}
     if phone:
         params['mobile'] = phone

@@ -26,6 +26,15 @@ def env_bool(key: str, default: bool = False) -> bool:
     return os.getenv(key, str(default)).lower() in ('true', '1', 'yes')
 
 
+def env_public_base_url(key: str, default: str = '') -> str:
+    from config.public_urls import normalize_public_base_url
+
+    raw = os.getenv(key)
+    if raw is None or not str(raw).strip():
+        raw = default
+    return normalize_public_base_url(raw)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -221,11 +230,11 @@ if EMAIL_BACKEND.endswith('smtp.EmailBackend') and EMAIL_HOST_USER and EMAIL_HOS
 
 # New order email notifications (super_admin + order_manager)
 ORDER_NOTIFICATIONS_ENABLED = env_bool('ORDER_NOTIFICATIONS_ENABLED', default=True)
-FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000').rstrip('/')
+FRONTEND_BASE_URL = env_public_base_url('FRONTEND_BASE_URL', 'http://localhost:3000')
 # Admin links in notification emails (defaults to FRONTEND_BASE_URL).
-ADMIN_PORTAL_BASE_URL = os.getenv('ADMIN_PORTAL_BASE_URL', FRONTEND_BASE_URL).rstrip('/')
+ADMIN_PORTAL_BASE_URL = env_public_base_url('ADMIN_PORTAL_BASE_URL', FRONTEND_BASE_URL) or FRONTEND_BASE_URL
 # Public HTTPS API URL — required for Twilio to fetch invoice PDF attachments (use ngrok in local dev)
-API_PUBLIC_BASE_URL = os.getenv('API_PUBLIC_BASE_URL', '').strip().rstrip('/')
+API_PUBLIC_BASE_URL = env_public_base_url('API_PUBLIC_BASE_URL', '')
 
 # Twilio WhatsApp — post-checkout customer notification with track/invoice link
 WHATSAPP_NOTIFICATIONS_ENABLED = env_bool('WHATSAPP_NOTIFICATIONS_ENABLED', default=False)

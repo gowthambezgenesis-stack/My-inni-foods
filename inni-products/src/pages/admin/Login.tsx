@@ -7,7 +7,7 @@ import { ArrowRight, Mail } from 'lucide-react';
 
 import { AdminAuthShell } from '../../components/admin/AdminAuthShell';
 
-import { setAdminLoginSession } from '../../lib/adminLoginSession';
+import { setAdminLoginSession, setAdminLoginRedirect } from '../../lib/adminLoginSession';
 
 import { sendAdminOtp } from '../../features/admin/adminApi';
 
@@ -39,12 +39,16 @@ export function AdminLogin() {
       return;
     }
 
+    const redirectFrom =
+      typeof location.state?.from === 'string' && location.state.from.startsWith('/admin')
+        ? location.state.from
+        : null;
+    if (redirectFrom) {
+      setAdminLoginRedirect(redirectFrom);
+    }
+
     if (isAuthenticated && isAdminPanelRole(role)) {
-      const redirectPath =
-        typeof location.state?.from === 'string' && location.state.from.startsWith('/admin')
-          ? location.state.from
-          : '/admin/dashboard';
-      navigate(redirectPath, { replace: true });
+      navigate(redirectFrom ?? '/admin/dashboard', { replace: true });
     }
   }, [hasHydrated, isAuthenticated, role, location.state, navigate]);
 

@@ -17,6 +17,8 @@ import {
 
   getAdminLoginEmail,
 
+  getAdminLoginRedirect,
+
   getRemainingSeconds,
 
   isOtpExpired,
@@ -170,11 +172,13 @@ export function AdminVerifyOtp() {
 
       const auth = await verifyAdminOtp(email, otp);
 
+      const redirectPath = getAdminLoginRedirect() ?? '/admin/dashboard';
+
       clearAdminLoginSession();
 
       login(auth.user, auth.access);
 
-      navigate('/admin/dashboard', { replace: true });
+      navigate(redirectPath, { replace: true });
 
     } catch (err: unknown) {
       setError(getApiErrorMessage(err, 'Invalid or expired verification code.'));

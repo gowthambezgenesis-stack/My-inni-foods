@@ -222,6 +222,8 @@ if EMAIL_BACKEND.endswith('smtp.EmailBackend') and EMAIL_HOST_USER and EMAIL_HOS
 # New order email notifications (super_admin + order_manager)
 ORDER_NOTIFICATIONS_ENABLED = env_bool('ORDER_NOTIFICATIONS_ENABLED', default=True)
 FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000').rstrip('/')
+# Admin links in notification emails (defaults to FRONTEND_BASE_URL).
+ADMIN_PORTAL_BASE_URL = os.getenv('ADMIN_PORTAL_BASE_URL', FRONTEND_BASE_URL).rstrip('/')
 # Public HTTPS API URL — required for Twilio to fetch invoice PDF attachments (use ngrok in local dev)
 API_PUBLIC_BASE_URL = os.getenv('API_PUBLIC_BASE_URL', '').strip().rstrip('/')
 
